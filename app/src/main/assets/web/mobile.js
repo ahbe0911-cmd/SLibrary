@@ -16,7 +16,7 @@ function(css, expectedHost, hideSupport) {
  style.textContent=css;
  document.documentElement.classList.add("saman-app-mobile");
  const clean=s=>(s||"").replace(/ي/g,"ی").replace(/ك/g,"ک").replace(/[\u200c\u200f\u200e]/g," ").replace(/\s+/g," ").trim().toLowerCase();
- let active=null,manualField=null;
+ let active=null,manualField=null,pendingEnter=null;
  function matches(input){
   if(!input||input.tagName!=="INPUT"||input.disabled||input.readOnly||!input.getClientRects().length||!["text","number","search","tel",""].includes(input.type||""))return false;
   const info=clean([input.id,input.name,input.placeholder,input.getAttribute("aria-label"),input.title].join(" "));
@@ -24,7 +24,7 @@ function(css, expectedHost, hideSupport) {
  }
  function request(input){
   if(!matches(input))return;
-  active=input;manualField=null;input.blur();
+  active=input;manualField=null;pendingEnter=null;input.blur();
   if(window.SLibraryScan&&typeof window.SLibraryScan.postMessage==="function")window.SLibraryScan.postMessage("scan");
   else location.href="slibrary-scan://start";
  }
@@ -73,15 +73,26 @@ function(css, expectedHost, hideSupport) {
  document.addEventListener("hidden.bs.modal",onModalEvent,true);
  window.__samanBarcode={
   fill(code){
-   const input=active;active=null;
+   const input=active;active=null;pendingEnter=null;
    if(!input||!input.isConnected||!matches(input))return false;
+   const value=String(code);
+   input.focus({preventScroll:true});
    const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set;
-   setter.call(input,String(code));
-   input.dispatchEvent(new Event("input",{bubbles:true}));input.dispatchEvent(new Event("change",{bubbles:true}));
-   return input.value===String(code);
+   setter.call(input,value);
+   input.dispatchEvent(new Event("input",{bubbles:true}));
+   input.dispatchEvent(new Event("change",{bubbles:true}));
+   // Only send the scanner terminator if this exact field remains focused.
+   // Do not click a guessed button or submit a different form.
+   if(input.isConnected&&document.activeElement===input&&input.value===value)pendingEnter={input,value};
+   return input.value===value;
+  },
+  takeEnter(){
+   const pending=pendingEnter;pendingEnter=null;
+   return !!(pending&&pending.input.isConnected&&document.activeElement===pending.input&&
+      matches(pending.input)&&pending.input.value===pending.value);
   },
   manual(){if(active&&active.isConnected){manualField=active;active.focus();return true;}return false;},
-  clear(){active=null;manualField=null;}
+  clear(){active=null;manualField=null;pendingEnter=null;}
  };
  const supportLabels=["پرسش از کتابدار","ارسال پستی منابع","مشاوره خواندن","پیشنهاد و انتقاد","درخواست مقاله","پیگیری درخواست","گزارش خطای فنی"];
  function support(){

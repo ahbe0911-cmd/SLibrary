@@ -207,11 +207,26 @@ class LibraryTools(
                 val code = result.text
                 val url = scanUrl
                 if (!scanning || code.isNullOrBlank()) return
+                val targetView = web()
                 cancelScan()
-                if (url == null || url != web().url || !trusted(Uri.parse(url))) return
-                web().evaluateJavascript("(function(){return !!(window.__samanBarcode && window.__samanBarcode.fill("+JSONObject.quote(code)+"));})()") {
+                if (url == null || url != targetView.url || !trusted(Uri.parse(url))) return
+                targetView.requestFocus()
+                targetView.evaluateJavascript("(function(){return !!(window.__samanBarcode && window.__samanBarcode.fill("+JSONObject.quote(code)+"));})()") {
+                    if (targetView !== web() || targetView.url != url || scanning || activity.isFinishing || activity.isDestroyed) return@evaluateJavascript
                     if (it == "true") {
                         message("بارکد خوانده شد: "+code)
+                        // Emulate the Enter suffix of a physical keyboard-wedge barcode reader.
+                        // Use one native key down/up pair, not a second search button click.
+                        targetView.evaluateJavascript("(function(){return !!(window.__samanBarcode && window.__samanBarcode.takeEnter());})()") { ready ->
+                            if (ready == "true" && targetView === web() && targetView.url == url &&
+                                !scanning && targetView.hasFocus() && !activity.isFinishing && !activity.isDestroyed) {
+                                val downTime = android.os.SystemClock.uptimeMillis()
+                                targetView.dispatchKeyEvent(android.view.KeyEvent(downTime, downTime,
+                                    android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER, 0))
+                                targetView.dispatchKeyEvent(android.view.KeyEvent(downTime, android.os.SystemClock.uptimeMillis(),
+                                    android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER, 0))
+                            }
+                        }
                         runCatching {
                             val tone = android.media.ToneGenerator(android.media.AudioManager.STREAM_MUSIC,65)
                             tone.startTone(android.media.ToneGenerator.TONE_PROP_BEEP,110)
