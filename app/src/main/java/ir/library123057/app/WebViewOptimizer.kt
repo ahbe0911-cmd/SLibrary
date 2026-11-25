@@ -12,6 +12,7 @@ class WebViewOptimizer(context: Context) {
     private val preferences = app.getSharedPreferences("library_tools", Context.MODE_PRIVATE)
     private val css by lazy { read("web/mobile.css") }
     private val js by lazy { read("web/mobile.js") }
+    private val reset by lazy { read("web/reset-search.js") }
     private fun read(path: String): String? = runCatching {
         app.assets.open(path).bufferedReader(Charsets.UTF_8).use { it.readText() }
     }.onFailure { Log.e("WebViewOptimizer", "Asset unavailable", it) }.getOrNull()
@@ -21,6 +22,14 @@ class WebViewOptimizer(context: Context) {
     }
     private fun pageUrlOrCurrent(url: String?, view: WebView): String = url ?: view.url.orEmpty()
     private fun Boolean?.orFalse() = this == true
+    fun resetSearch(view: WebView) {
+        val url = view.url ?: return
+        if (!allowed(url)) return
+        val script = reset ?: return
+        val host = Uri.parse(url).host.orEmpty().lowercase(Locale.ROOT)
+        runCatching { view.evaluateJavascript("($script)("+JSONObject.quote(host)+");", null) }
+            .onFailure { Log.w("WebViewOptimizer", "Search reset failed", it) }
+    }
     fun apply(view: WebView, url: String?) {
         if (!allowed(url) || !allowed(view.url)) return
         val host = Uri.parse(pageUrlOrCurrent(url, view)).host.orEmpty().lowercase(Locale.ROOT)

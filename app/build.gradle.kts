@@ -16,8 +16,8 @@ android {
         applicationId = "ir.library123057.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 7
-        versionName = "1.4.0"
+        versionCode = 8
+        versionName = "1.5.0"
         buildConfigField("String", "WEBSITE_URL", "\"https://123057.samanpl.ir/\"")
     }
     signingConfigs {

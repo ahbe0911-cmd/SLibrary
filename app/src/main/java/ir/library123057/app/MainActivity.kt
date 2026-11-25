@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var web: WebView
     private var activeKey = R.id.navHome
     private val pages = LinkedHashMap<Int, PageSlot>(5, 0.75f, true)
-    private val membershipKey = -1
+    private var modalOpen = false
     private val pageLimit by lazy { if (getSystemService(android.app.ActivityManager::class.java)?.isLowRamDevice == true) 2 else 4 }
     private data class PageSlot(val view: WebView, val target: String, var progress: Int = 0, var errorUrl: String? = null, var errorTitle: String? = null, var errorDescription: String? = null, var loading: Boolean = false)
     private val homeHost = Uri.parse(AppConfig.HOME_URL).host.orEmpty()
@@ -88,7 +88,7 @@ class MainActivity : AppCompatActivity() {
         tools = LibraryTools(this, binding, { web }, ::trusted, ::openMembership, ::message)
         val savedKey = savedInstanceState?.getInt("activeTab", R.id.navHome) ?: R.id.navHome
         val savedTarget = savedInstanceState?.getString("activeTarget")
-        activeKey = if (savedTarget != null && trusted(Uri.parse(savedTarget))) savedKey else R.id.navHome
+        activeKey = if (savedKey in setOf(R.id.navHome,R.id.navStatus,R.id.navLoan,R.id.navReturn) && savedTarget != null && trusted(Uri.parse(savedTarget))) savedKey else R.id.navHome
         val initialTarget = if (activeKey == savedKey && savedTarget != null && trusted(Uri.parse(savedTarget))) savedTarget else AppConfig.HOME_URL
         pages[activeKey] = PageSlot(web, initialTarget)
         splash.setOnExitAnimationListener { p ->
@@ -103,7 +103,7 @@ class MainActivity : AppCompatActivity() {
         binding.headerRefresh.setOnClickListener { retry() }
         binding.retryButton.setOnClickListener { retry() }
         binding.swipeRefresh.setColorSchemeResources(R.color.primary, R.color.accent)
-        binding.swipeRefresh.setOnChildScrollUpCallback { _, _ -> web.canScrollVertically(-1) }
+        binding.swipeRefresh.setOnChildScrollUpCallback { _, _ -> modalOpen || web.canScrollVertically(-1) }
         binding.swipeRefresh.setOnRefreshListener { retry() }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -122,7 +122,8 @@ class MainActivity : AppCompatActivity() {
         savedInstanceState?.getBundle("download")?.let {
             pendingDownload = DownloadInfo(it.getString("url").orEmpty(), it.getString("agent").orEmpty(), it.getString("disposition").orEmpty(), it.getString("mime").orEmpty())
         }
-        val restored = savedInstanceState?.getBundle("web")?.let { web.restoreState(it) }
+        // Never restore saved form state for staff workflows after Activity recreation.
+        val restored = if (activeKey == R.id.navHome) savedInstanceState?.getBundle("web")?.let { web.restoreState(it) } else null
         if (restored == null) loadPage(initialTarget)
         else {
             activeUrl = web.url
@@ -174,6 +175,12 @@ class MainActivity : AppCompatActivity() {
             w.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true)
         }
         w.isHorizontalScrollBarEnabled = false
+        w.isFocusable = true
+        w.isFocusableInTouchMode = true
+        w.setOnTouchListener { v, event ->
+            if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN && !v.hasFocus()) v.requestFocus()
+            false
+        }
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
             setAcceptThirdPartyCookies(w, false)
@@ -200,6 +207,7 @@ class MainActivity : AppCompatActivity() {
                     return
                 }
                 tools.cancelScan()
+                setModalState(view, false)
                 activeUrl = url
                 lastBack = 0
                 beginLoading()
@@ -339,7 +347,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun openMembership(url: String) {
         if (!trusted(Uri.parse(url))) { message("آدرس صفحه مجاز نیست."); return }
-        selectPage(membershipKey, url)
+        tools.cancelScan()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            startActivity(Intent(this, MembershipActivity::class.java).putExtra(MembershipActivity.EXTRA_URL, url))
+        } else {
+            if (!launch(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE))) message("مرورگر برای عضویت در دسترس نیست.")
+        }
+    }
+
+    fun setModalState(view: WebView, open: Boolean) {
+        if (view !== web) return
+        modalOpen = open
+        binding.swipeRefresh.isEnabled = !open
+        if (open) binding.swipeRefresh.isRefreshing = false
     }
 
     private fun newWeb(): WebView {
@@ -375,6 +395,7 @@ class MainActivity : AppCompatActivity() {
                 it.errorTitle = binding.offlineTitle.text.toString()
                 it.errorDescription = binding.offlineDescription.text.toString()
             }
+            if (activeKey != R.id.navHome && !it.loading && it.errorUrl == null) optimizer.resetSearch(web)
             web.clearFocus()
             web.onPause()
             web.visibility = View.GONE
@@ -388,6 +409,7 @@ class MainActivity : AppCompatActivity() {
         val slot = existing ?: PageSlot(newWeb(), target).also { pages[key] = it }
         activeKey = key
         web = slot.view
+        setModalState(web, false)
         activeUrl = web.url
         failedUrl = slot.errorUrl
         sslWarning = false
@@ -397,6 +419,7 @@ class MainActivity : AppCompatActivity() {
         web.visibility = View.VISIBLE
         web.bringToFront()
         web.onResume()
+        web.requestFocus()
         updateNavigation(web.url)
         if (existing == null || (web.url == null && !slot.loading)) {
             loadPage(target)
@@ -406,8 +429,11 @@ class MainActivity : AppCompatActivity() {
         } else {
             binding.pageProgress.progress = slot.progress
             binding.pageProgress.visibility = if (slot.loading) View.VISIBLE else View.INVISIBLE
-            // Retain the actual DOM, form fields, history and scroll position.
-            if (!slot.loading) optimizer.apply(web, web.url)
+            // Retain DOM and scroll, but clear transactional search inputs before reuse.
+            if (!slot.loading) {
+                if (key != R.id.navHome) optimizer.resetSearch(web)
+                optimizer.apply(web, web.url)
+            }
         }
         trimPages(pageLimit)
     }
@@ -613,7 +639,7 @@ class MainActivity : AppCompatActivity() {
     }
     override fun onSaveInstanceState(outState: Bundle) {
         val state = Bundle()
-        if (web.saveState(state) != null) outState.putBundle("web",state)
+        if (activeKey == R.id.navHome && web.saveState(state) != null) outState.putBundle("web",state)
         outState.putInt("activeTab",activeKey)
         pages[activeKey]?.let { outState.putString("activeTarget",it.target) }
         pendingDownload?.let { d -> outState.putBundle("download",Bundle().apply { putString("url",d.url); putString("agent",d.agent); putString("disposition",d.disposition); putString("mime",d.mime) }) }

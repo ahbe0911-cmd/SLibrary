@@ -112,7 +112,26 @@ class LibraryTools(
             WebViewCompat.addWebMessageListener(view,"SLibraryScan",setOf("https://samanpl.ir","https://*.samanpl.ir")) { view, msg, origin, mainFrame, _ ->
                 val current = view.url?.let { Uri.parse(it) }
                 if (view === web() && mainFrame && current != null && trusted(current) && trusted(origin) &&
-                    current.host.equals(origin.host,true) && msg.data == "scan") requestScan()
+                    current.host.equals(origin.host,true)) {
+                    when (msg.data) {
+                        "scan" -> requestScan()
+                        "modal:1" -> activity.setModalState(view, true)
+                        "modal:0" -> activity.setModalState(view, false)
+                        "edit" -> {
+                            val original = view.url
+                            if (!view.hasFocus()) view.requestFocus()
+                            view.postDelayed({
+                                if (view === web() && view.url == original && !activity.isFinishing) {
+                                    view.evaluateJavascript("(function(){var e=document.activeElement;return !!(e && (e.matches(\"input:not([readonly]):not([disabled]):not([type=hidden]),textarea:not([readonly]):not([disabled]),[contenteditable=true]\")));})()") { result ->
+                                        if (result == "true" && view === web() && view.url == original) {
+                                            (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
+                                        }
+                                    }
+                                }
+                            }, 100)
+                        }
+                    }
+                }
             }
         }
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
