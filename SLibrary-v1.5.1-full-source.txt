@@ -1,0 +1,975 @@
+SLibrary — complete textual source snapshot for AI code review
+Repository: https://github.com/ahbe0911-cmd/SLibrary
+Source commit: 6ac69ebbed6eb55acaaabf221833ac2df45937f2
+Version: 1.5.1 (versionCode 9)
+Encoding: UTF-8
+All 47 tracked text files included; binary font omitted (app/src/main/res/font/vazir.ttf). No runtime credentials or locally stored user data included.
+
+FILE INDEX
+.github/workflows/build-apk.yml
+.gitignore
+README.md
+app/build.gradle.kts
+app/proguard-rules.pro
+app/src/main/AndroidManifest.xml
+app/src/main/assets/licenses/Vazir-OFL.txt
+app/src/main/assets/web/mobile.css
+app/src/main/assets/web/mobile.js
+app/src/main/assets/web/reset-search.js
+app/src/main/java/ir/library123057/app/AppConfig.kt
+app/src/main/java/ir/library123057/app/LibraryApplication.kt
+app/src/main/java/ir/library123057/app/LibraryTools.kt
+app/src/main/java/ir/library123057/app/MainActivity.kt
+app/src/main/java/ir/library123057/app/MembershipActivity.kt
+app/src/main/java/ir/library123057/app/WebViewOptimizer.kt
+app/src/main/res/animator/membership_press.xml
+app/src/main/res/color/bottom_nav_color.xml
+app/src/main/res/color/nav_item_color.xml
+app/src/main/res/drawable/bg_membership_pill.xml
+app/src/main/res/drawable/bg_offline_icon.xml
+app/src/main/res/drawable/bookmark_chip.xml
+app/src/main/res/drawable/btn_primary.xml
+app/src/main/res/drawable/ic_book.xml
+app/src/main/res/drawable/ic_contact.xml
+app/src/main/res/drawable/ic_document_status.xml
+app/src/main/res/drawable/ic_home.xml
+app/src/main/res/drawable/ic_launcher_foreground.xml
+app/src/main/res/drawable/ic_loan.xml
+app/src/main/res/drawable/ic_offline.xml
+app/src/main/res/drawable/ic_refresh.xml
+app/src/main/res/drawable/ic_return_book.xml
+app/src/main/res/drawable/ic_search.xml
+app/src/main/res/drawable/ic_splash.xml
+app/src/main/res/drawable/nav_item_background.xml
+app/src/main/res/drawable/scan_panel_bg.xml
+app/src/main/res/layout/activity_main.xml
+app/src/main/res/menu/bottom_navigation.xml
+app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+app/src/main/res/mipmap-anydpi/ic_launcher.xml
+app/src/main/res/raw/samanlibrary_keep.xml
+app/src/main/res/values/colors.xml
+app/src/main/res/values/strings.xml
+app/src/main/res/values/themes.xml
+build.gradle.kts
+gradle.properties
+settings.gradle.kts
+
+SOURCE FILES
+
+==============================================================================
+FILE: .github/workflows/build-apk.yml
+BLOB: 9cb2f3eb253f65af8b11f90ce3630f8f556d3bc4
+==============================================================================
+name: Build SLibrary APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: APK build type
+        required: true
+        default: debug
+        type: choice
+        options: [debug, release]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      BUILD_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type || 'debug' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '11076708'
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+      - name: Verify Android SDK
+        run: |
+          sdkmanager --version
+          test -f "$ANDROID_HOME/platforms/android-34/android.jar"
+          test -x "$ANDROID_HOME/build-tools/34.0.0/apksigner"
+      - name: Check sources
+        run: |
+          test -s app/src/main/res/font/vazir.ttf
+          test -s app/src/main/assets/web/mobile.css
+          test -s app/src/main/assets/web/mobile.js
+      - name: Restore release key
+        if: env.BUILD_TYPE == 'release'
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Configure all four Android signing secrets before building Release."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          test -s "$RUNNER_TEMP/release.jks"
+      - name: Build debug APK
+        if: env.BUILD_TYPE == 'debug'
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - name: Build signed release APK
+        if: env.BUILD_TYPE == 'release'
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: gradle --no-daemon --stacktrace :app:lintRelease :app:assembleRelease
+      - name: Verify and package APK
+        run: |
+          set -euo pipefail
+          mkdir -p apk-output
+          SOURCE="app/build/outputs/apk/$BUILD_TYPE/app-$BUILD_TYPE.apk"
+          TOOLS="$ANDROID_HOME/build-tools/34.0.0"
+          "$TOOLS/aapt" dump badging "$SOURCE" > apk-output/apk-info.txt
+          VERSION=$(sed -n "s/^package: .*versionName='\([^']*\)'.*/\1/p" apk-output/apk-info.txt | head -n 1)
+          test -n "$VERSION"
+          APK="SLibrary-v$VERSION-$BUILD_TYPE.apk"
+          cp "$SOURCE" "apk-output/$APK"
+          "$TOOLS/apksigner" verify --verbose --print-certs "apk-output/$APK" > apk-output/signature-info.txt
+          (cd apk-output && sha256sum "$APK" > SHA256SUMS.txt)
+          echo "APK: $APK" >> "$GITHUB_STEP_SUMMARY"
+          echo "Bytes: $(stat -c%s "apk-output/$APK")" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SLibrary-${{ env.BUILD_TYPE }}-APK
+          path: apk-output/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: env.BUILD_TYPE == 'release'
+        with:
+          name: SLibrary-R8-Mapping
+          path: app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: error
+          retention-days: 30
+
+END FILE: .github/workflows/build-apk.yml
+
+
+==============================================================================
+FILE: .gitignore
+BLOB: 938fbb7f4c7c4a4af5f863616ea30b10defbad3d
+==============================================================================
+.gradle/
+.kotlin/
+.idea/
+**/build/
+local.properties
+*.iml
+*.apk
+*.aab
+*.jks
+*.keystore
+*.p12
+*.pfx
+keystore.properties
+keystore.base64
+signing.properties
+apk-output/
+.env*
+
+END FILE: .gitignore
+
+
+==============================================================================
+FILE: README.md
+BLOB: b601af2349c78b78e4202aaac1f63cef94ea0fda
+==============================================================================
+# SLibrary | کتابخانه صفی‌آباد
+
+https://123057.samanpl.ir/ — Android 7+, Kotlin, Java 17. Debug APK on push; Release via Actions with four signing secrets. Font: Vazir 30.1.0, SIL OFL (see assets/licenses).
+END FILE: README.md
+
+
+==============================================================================
+FILE: app/build.gradle.kts
+BLOB: 61df692a729b37aa07d646ce4ddfd850ae9a1335
+==============================================================================
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+}
+val store = System.getenv("ANDROID_KEYSTORE_PATH")
+val pass = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+val alias = System.getenv("ANDROID_KEY_ALIAS")
+val keyPass = System.getenv("ANDROID_KEY_PASSWORD")
+val signed = listOf(store, pass, alias, keyPass).all { !it.isNullOrBlank() }
+android {
+    namespace = "ir.library123057.app"
+    compileSdk = 34
+    buildToolsVersion = "34.0.0"
+    defaultConfig {
+        applicationId = "ir.library123057.app"
+        minSdk = 24
+        targetSdk = 34
+        versionCode = 9
+        versionName = "1.5.1"
+        buildConfigField("String", "WEBSITE_URL", "\"https://123057.samanpl.ir/\"")
+    }
+    signingConfigs {
+        if (signed) create("release") {
+            storeFile = file(requireNotNull(store))
+            storePassword = pass
+            keyAlias = alias
+            keyPassword = keyPass
+            storeType = "JKS"
+        }
+    }
+    buildTypes {
+        debug { isMinifyEnabled = false }
+        release {
+            isDebuggable = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            if (signed) signingConfig = signingConfigs.getByName("release")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+    compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
+    buildFeatures { viewBinding = true; buildConfig = true }
+}
+kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
+dependencies {
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.activity:activity-ktx:1.9.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("androidx.webkit:webkit:1.11.0")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+}
+END FILE: app/build.gradle.kts
+
+
+==============================================================================
+FILE: app/proguard-rules.pro
+BLOB: 4d2d52168f0cff5716ea25e6745d802b06263f9a
+==============================================================================
+-keepattributes SourceFile,LineNumberTable,Signature,*Annotation*,InnerClasses,EnclosingMethod
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+END FILE: app/proguard-rules.pro
+
+
+==============================================================================
+FILE: app/src/main/AndroidManifest.xml
+BLOB: f8e94c7559dfe11460ffec8daebcbe12ec64e471
+==============================================================================
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
+    <application android:name=".LibraryApplication" android:allowBackup="false" android:hardwareAccelerated="true" android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher" android:label="@string/app_name" android:supportsRtl="true"
+        android:theme="@style/Theme.SamanLibrary" android:enableOnBackInvokedCallback="true" android:usesCleartextTraffic="false">
+        <activity android:name=".MainActivity" android:exported="true" android:hardwareAccelerated="true" android:theme="@style/Theme.SamanLibrary.Starting"
+            android:configChanges="keyboardHidden|orientation|screenSize" android:windowSoftInputMode="adjustResize">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity>
+        <activity android:name=".MembershipActivity" android:exported="false" android:process=":membership"
+            android:hardwareAccelerated="true" android:theme="@style/Theme.SamanLibrary"
+            android:configChanges="keyboardHidden|orientation|screenSize" android:windowSoftInputMode="adjustResize"/>
+    </application>
+</manifest>
+END FILE: app/src/main/AndroidManifest.xml
+
+
+==============================================================================
+FILE: app/src/main/assets/licenses/Vazir-OFL.txt
+BLOB: e8bd0a93a178e3c40040072d2343be7d2f3f4d31
+==============================================================================
+Copyright 2015 The Vazir Project Authors (https://github.com/rastikerdar/vazir-font)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded, 
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION & CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+
+END FILE: app/src/main/assets/licenses/Vazir-OFL.txt
+
+
+==============================================================================
+FILE: app/src/main/assets/web/mobile.css
+BLOB: 3fe2a1e631284ff435b9d92495999e9b75104b0d
+==============================================================================
+@media screen and (max-width: 991px) {
+ html.saman-app-mobile, html.saman-app-mobile body { width:100% !important; max-width:100% !important; min-width:0 !important; margin-inline:0 !important; overflow-x:hidden !important; -webkit-text-size-adjust:100%; }
+ @supports(overflow:clip) { html.saman-app-mobile, html.saman-app-mobile body {overflow-x:clip !important;} }
+ .saman-app-mobile *, .saman-app-mobile *::before, .saman-app-mobile *::after {box-sizing:border-box;}
+ .saman-app-mobile main,.saman-app-mobile article,.saman-app-mobile section,.saman-app-mobile .container,.saman-app-mobile .container-fluid {max-width:100% !important;min-width:0 !important;}
+ .saman-app-mobile .container,.saman-app-mobile .container-fluid {width:100% !important;}
+ .saman-app-mobile body > .row,.saman-app-mobile main > .row {max-width:100%;margin-inline:0 !important;}
+ .saman-app-mobile img,.saman-app-mobile video {max-width:100% !important;height:auto !important;}
+ .saman-app-mobile picture,.saman-app-mobile figure,.saman-app-mobile svg,.saman-app-mobile canvas,.saman-app-mobile iframe,.saman-app-mobile embed,.saman-app-mobile object {max-width:100% !important;}
+ .saman-app-mobile p,.saman-app-mobile h1,.saman-app-mobile h2,.saman-app-mobile h3,.saman-app-mobile h4,.saman-app-mobile h5,.saman-app-mobile h6 {overflow-wrap:anywhere;}
+ .saman-app-mobile form,.saman-app-mobile fieldset,.saman-app-mobile .form-group,.saman-app-mobile .input-group,.saman-app-mobile input:not([type=checkbox]):not([type=radio]),.saman-app-mobile textarea,.saman-app-mobile select,.saman-app-mobile .form-control {max-width:100% !important;min-width:0 !important;}
+ .saman-app-mobile .btn,.saman-app-mobile button {max-width:100%;touch-action:manipulation;}
+ .saman-app-mobile .table-responsive,.saman-app-mobile .saman-app-wide-table {display:block !important;max-width:100% !important;min-width:0 !important;overflow-x:auto !important;overscroll-behavior-x:contain;}
+ .saman-app-mobile table.saman-app-wide-table {width:100% !important;}
+ .saman-app-mobile pre {max-width:100%;overflow-x:auto;}
+ .saman-app-mobile .modal-dialog {max-width:calc(100% - 24px) !important;min-width:0 !important;margin-inline:auto !important;}
+ .saman-app-mobile .modal-content,.saman-app-mobile .modal-body,.saman-app-mobile .carousel,.saman-app-mobile .carousel-inner,.saman-app-mobile .swiper,.saman-app-mobile .owl-carousel {max-width:100% !important;min-width:0 !important;}
+ .saman-app-mobile a,.saman-app-mobile button {-webkit-tap-highlight-color:rgba(6,95,70,.12);}
+ /* Optional: verify real selectors before enabling.
+ .saman-app-mobile #extra-banner,.saman-app-mobile .desktop-only {display:none !important;}
+ */
+}
+/* Compact mobile form and support panel, scoped to app. */
+@media screen and (max-width: 991px) {
+ .saman-app-mobile .form-group {margin-bottom:12px;}
+ .saman-app-mobile .form-control:not(textarea) {font-size:14px !important;min-height:34px;}
+ .saman-app-mobile .input-group {width:100% !important;flex-wrap:nowrap;}
+ .saman-app-mobile .input-group > .form-control {min-width:0 !important;flex-shrink:1;}
+ .saman-app-mobile .card,.saman-app-mobile .panel,.saman-app-mobile .content-wrapper,.saman-app-mobile .main-content,.saman-app-mobile .page-content {max-width:100% !important;min-width:0 !important;}
+ .saman-app-mobile .saman-barcode-actions {display:flex;gap:5px;align-items:center;justify-content:flex-start;flex-wrap:wrap;margin:5px 0 7px;direction:rtl;}
+ .saman-app-mobile .saman-barcode-actions button {border:1px solid #c8e2d7;border-radius:8px;background:#e4f0ea;color:#065f46;padding:5px 9px;font:inherit;font-size:12px;cursor:pointer;min-height:30px;}
+}
+html.saman-app-mobile .saman-support-hidden {display:none !important;visibility:hidden !important;pointer-events:none !important;}
+
+/* Keep editable modal content inside the resized keyboard viewport. */
+@media screen and (max-width: 991px) {
+ html.saman-app-mobile.saman-modal-open, html.saman-app-mobile.saman-modal-open body {overflow-x:hidden !important;}
+ .saman-app-mobile .modal {overflow-y:auto;overscroll-behavior:contain;}
+ .saman-app-mobile .modal-dialog {width:auto !important;max-width:calc(100% - 20px) !important;}
+ .saman-app-mobile .modal input:not([readonly]):not([disabled]),.saman-app-mobile .modal textarea:not([readonly]):not([disabled]),.saman-app-mobile [role=dialog] input:not([readonly]):not([disabled]),.saman-app-mobile [role=dialog] textarea:not([readonly]):not([disabled]) {-webkit-user-select:text;user-select:text;touch-action:auto;scroll-margin:12px;}
+}
+
+END FILE: app/src/main/assets/web/mobile.css
+
+
+==============================================================================
+FILE: app/src/main/assets/web/mobile.js
+BLOB: f6cd96f2191d3688c43d9548c7862a3a61f58c0d
+==============================================================================
+function(css, expectedHost, hideSupport) {
+ "use strict";
+ if(self!==top||location.protocol!=="https:"||location.hostname.toLowerCase()!==expectedHost||(location.port&&location.port!=="443"))return "skipped-domain";
+ if(!document.head||!document.documentElement)return "not-ready";
+ const id="saman-app-mobile-style-v3";
+ if(window.__samanMobile&&document.getElementById(id)){window.__samanMobile.refresh();return "already-applied";}
+ if(window.__samanMobile)window.__samanMobile.dispose();
+ function viewport(){
+  let tags=document.querySelectorAll('meta[name="viewport"]');
+  if(!tags.length){const m=document.createElement("meta");m.name="viewport";document.head.appendChild(m);tags=[m];}
+  tags.forEach(v=>{const s="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";if(v.content!==s)v.content=s;});
+ }
+ viewport();
+ let style=document.getElementById(id);
+ if(!style){style=document.createElement("style");style.id=id;document.head.appendChild(style);}
+ style.textContent=css;
+ document.documentElement.classList.add("saman-app-mobile");
+ const clean=s=>(s||"").replace(/ي/g,"ی").replace(/ك/g,"ک").replace(/[\u200c\u200f\u200e]/g," ").replace(/\s+/g," ").trim().toLowerCase();
+ let active=null,manualField=null,pendingEnter=null;
+ function matches(input){
+  if(!input||input.tagName!=="INPUT"||input.disabled||input.readOnly||!input.getClientRects().length||!["text","number","search","tel",""].includes(input.type||""))return false;
+  const info=clean([input.id,input.name,input.placeholder,input.getAttribute("aria-label"),input.title].join(" "));
+  return /bar[\s_-]*code|بار\s*کد/.test(info);
+ }
+ function request(input){
+  if(!matches(input))return;
+  active=input;manualField=null;pendingEnter=null;input.blur();
+  if(window.SLibraryScan&&typeof window.SLibraryScan.postMessage==="function")window.SLibraryScan.postMessage("scan");
+  else location.href="slibrary-scan://start";
+ }
+ function addBarcode(){
+  document.querySelectorAll("input").forEach(input=>{
+   if(!matches(input)||input.dataset.samanBarcode==="yes")return;
+   const group=input.closest(".input-group")||input;
+   if(!group.parentNode)return;
+   input.dataset.samanBarcode="yes";
+   const actions=document.createElement("div");actions.className="saman-barcode-actions";
+   const scan=document.createElement("button");scan.type="button";scan.textContent="▥ اسکن بارکد";scan.addEventListener("click",e=>{e.preventDefault();request(input);});
+   const manual=document.createElement("button");manual.type="button";manual.textContent="ورود دستی";manual.addEventListener("click",e=>{e.preventDefault();manualField=input;input.focus();});
+   actions.append(scan,manual);group.insertAdjacentElement("afterend",actions);
+  });
+ }
+ function send(message){if(window.SLibraryScan&&typeof window.SLibraryScan.postMessage==="function")window.SLibraryScan.postMessage(message);}
+ function editable(el){return !!(el&&el.matches&&el.matches('input:not([type=hidden]):not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),[contenteditable=true]'));}
+ function inModal(el){return !!(el&&el.closest&&el.closest('.modal,[role=dialog],dialog,.ui-dialog,.k-window,.bootbox'));}
+ function onClick(e){
+  const input=e.target;
+  if(!e.isTrusted)return;
+  if(editable(input)&&inModal(input)){
+   send("modal:1");
+   // Preserve the website's own event handlers, focus trap and native keyboard.
+   // In dialogs, use the explicit scan button for barcode fields.
+   setTimeout(()=>{if(document.activeElement===input)send("edit");},0);
+   return;
+  }
+  if(!matches(input)||manualField===input)return;
+  e.preventDefault();e.stopImmediatePropagation();request(input);
+ }
+ let modalState=null;
+ function updateModal(){
+  const opened=Array.from(document.querySelectorAll('.modal,[role=dialog],dialog[open],.ui-dialog,.k-window,.bootbox')).some(el=>{
+   const s=getComputedStyle(el);return el.getClientRects().length&&s.visibility!=="hidden"&&s.display!=="none"&&el.getAttribute("aria-hidden")!=="true";
+  });
+  document.documentElement.classList.toggle("saman-modal-open",opened);
+  if(modalState!==opened){modalState=opened;send(opened?"modal:1":"modal:0");}
+ }
+ function onModalEvent(){setTimeout(updateModal,0);}
+ function onFocusOut(e){if(e.target===manualField)manualField=null;}
+ document.addEventListener("click",onClick,true);
+ document.addEventListener("focusout",onFocusOut,true);
+ document.addEventListener("focusin",onModalEvent,true);
+ document.addEventListener("shown.bs.modal",onModalEvent,true);
+ document.addEventListener("hidden.bs.modal",onModalEvent,true);
+ window.__samanBarcode={
+  fill(code){
+   const input=active;active=null;pendingEnter=null;
+   if(!input||!input.isConnected||!matches(input))return false;
+   const value=String(code);
+   input.focus({preventScroll:true});
+   const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set;
+   setter.call(input,value);
+   input.dispatchEvent(new Event("input",{bubbles:true}));
+   input.dispatchEvent(new Event("change",{bubbles:true}));
+   // Only send the scanner terminator if this exact field remains focused.
+   // Do not click a guessed button or submit a different form.
+   if(input.isConnected&&document.activeElement===input&&input.value===value)pendingEnter={input,value};
+   return input.value===value;
+  },
+  takeEnter(){
+   const pending=pendingEnter;pendingEnter=null;
+   return !!(pending&&pending.input.isConnected&&document.activeElement===pending.input&&
+      matches(pending.input)&&pending.input.value===pending.value);
+  },
+  manual(){if(active&&active.isConnected){manualField=active;active.focus();return true;}return false;},
+  clear(){active=null;manualField=null;pendingEnter=null;}
+ };
+ const supportLabels=["پرسش از کتابدار","ارسال پستی منابع","مشاوره خواندن","پیشنهاد و انتقاد","درخواست مقاله","پیگیری درخواست","گزارش خطای فنی"];
+ function support(){
+  if(!hideSupport)return;
+  const candidates=Array.from(document.querySelectorAll(".popover,.modal,.dropdown-menu,[role=dialog],div,section,aside")).filter(e=>{
+   if(!e.getClientRects().length||e.classList.contains("saman-support-hidden")||e.querySelector("input,textarea,select,[contenteditable]"))return false;
+   const t=clean(e.textContent);return t.length<2200&&supportLabels.filter(label=>t.includes(label)).length>=5;
+  });
+  if(!candidates.length)return;
+  const panel=candidates.find(e=>!candidates.some(other=>other!==e&&e.contains(other)))||candidates[0];
+  let target=panel;
+  for(let i=0;i<4&&target.parentElement&&target.parentElement!==document.body;i++){
+   const parent=target.parentElement;if(parent.querySelector("input,textarea,select,[contenteditable]")||clean(parent.textContent).length>2400)break;
+   if(parent.matches(".popover,.dropdown-menu,[role=dialog],.modal")){target=parent;break;}
+   const close=Array.from(parent.querySelectorAll("button,a,[role=button],span,i")).find(el=>{const t=clean(el.textContent),a=clean(el.getAttribute("aria-label")||el.title);return ["×","✕","✖","x"].includes(t)||/^(close|بستن)$/.test(a)||el.matches(".close,[data-dismiss=popover],[data-bs-dismiss=popover]");});
+   if(close){target=parent;break;}target=parent;
+  }
+  const close=Array.from(target.querySelectorAll("button,a,[role=button],span,i")).find(el=>{const t=clean(el.textContent),a=clean(el.getAttribute("aria-label")||el.title);return ["×","✕","✖","x"].includes(t)||/^(close|بستن)$/.test(a)||el.matches(".close,[data-dismiss=popover],[data-bs-dismiss=popover]");});
+  if(close&&!close.dataset.samanClosed){close.dataset.samanClosed="1";close.click();}
+  if(panel.isConnected&&panel.getClientRects().length)target.classList.add("saman-support-hidden");
+ }
+ function optimize(){
+  viewport();addBarcode();support();updateModal();
+  if(!matchMedia("(max-width: 991px)").matches)return;
+  const width=document.documentElement.clientWidth;if(!width)return;
+  document.querySelectorAll("table").forEach(table=>{
+   if(table.closest(".table-responsive,.saman-app-wide-table")||!table.getClientRects().length||!table.parentElement)return;
+   const p=table.parentElement;if(["auto","scroll"].includes(getComputedStyle(p).overflowX))return;
+   if(Math.max(table.scrollWidth,table.getBoundingClientRect().width)>Math.min(p.clientWidth||width,width)+4)table.classList.add("saman-app-wide-table");
+  });
+ }
+ let timer=null;function schedule(){if(timer!==null)return;timer=setTimeout(()=>{timer=null;optimize();},180);}
+ const observer=new MutationObserver(records=>{
+  if(records.some(r=>r.type==="childList"||r.type==="characterData"||(r.target.matches&&r.target.matches(".modal,[role=dialog],dialog,.ui-dialog,.k-window,.bootbox"))))schedule();
+ });
+ function observeBody(){if(document.body)observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:["class","style","aria-hidden","open"]});schedule();}
+ if(document.body)observeBody();else document.addEventListener("DOMContentLoaded",observeBody,{once:true});
+ addEventListener("resize",schedule);document.addEventListener("load",schedule,true);
+ window.__samanMobile={refresh(){modalState=null;schedule();},dispose(){observer.disconnect();clearTimeout(timer);removeEventListener("resize",schedule);document.removeEventListener("load",schedule,true);document.removeEventListener("click",onClick,true);document.removeEventListener("focusout",onFocusOut,true);document.removeEventListener("focusin",onModalEvent,true);document.removeEventListener("shown.bs.modal",onModalEvent,true);document.removeEventListener("hidden.bs.modal",onModalEvent,true);}};
+ optimize();schedule();return "optimization-applied";
+}
+
+END FILE: app/src/main/assets/web/mobile.js
+
+
+==============================================================================
+FILE: app/src/main/assets/web/reset-search.js
+BLOB: 7c4f41bb44dca8aa45c818341233d5854a7e94be
+==============================================================================
+function(expectedHost) {
+ "use strict";
+ if(self!==top||location.protocol!=="https:"||location.hostname.toLowerCase()!==expectedHost||(location.port&&location.port!=="443"))return 0;
+ const clean=s=>(s||"").replace(/ي/g,"ی").replace(/ك/g,"ک").replace(/[\u200c\u200e\u200f]/g," ").toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g,"");
+ const search=/کدملی|شمارهملی|شمارهعضویت|کدعضویت|شمارهعضو|کدعضو|بارکد|شمارهثبت|کدمدرک|نامخانوادگی|نامعضو|نامامانتگیرنده|نامکتاب|عنوانکتاب|جستجو|nationalcode|nationalid|nationalnumber|melli|meli|melicode|mellicode|codemeli|codemelli|ssn|barcode|membercode|memberid|memberno|membernumber|membershipnumber|membershipcode|borrowercode|borrowerid|accessionnumber|accessionno|documentcode|bookcode|firstname|lastname|familyname|fullname|search|keyword|query|patronid|patroncode|cardnumber/;
+ const excluded=/password|passcode|username|login|captcha|csrf|token|verify|verification|رمز|نامکاربری|کدامنیتی/;
+ function fields(doc){
+  let count=0;
+  doc.querySelectorAll('input:not([type]),input[type=text],input[type=number],input[type=search],input[type=tel],textarea').forEach(input=>{
+   if(input.disabled||input.readOnly||!input.value)return;
+   const form=input.form;
+   if(form&&form.querySelector('input[type=password]'))return;
+   const labels=Array.from(input.labels||[]).map(x=>x.textContent).join(" ");
+   const info=clean([input.name,input.id,input.placeholder,input.getAttribute("aria-label"),input.title,labels].join(" "));
+   const parent=input.closest(".form-group,.field,.form-row");
+   const context=parent?clean(Array.from(parent.querySelectorAll("label")).map(x=>x.textContent).join(" ")):"";
+   if(excluded.test(info)||excluded.test(context))return;
+   if(!search.test(info)&&!search.test(context)&&input.type!=="search")return;
+   const proto=input.tagName==="TEXTAREA"?doc.defaultView.HTMLTextAreaElement.prototype:doc.defaultView.HTMLInputElement.prototype;
+   const setter=Object.getOwnPropertyDescriptor(proto,"value").set;
+   setter.call(input,"");
+   input.removeAttribute("value");
+   input.dispatchEvent(new doc.defaultView.Event("input",{bubbles:true}));
+   count++;
+  });
+  Array.from(doc.querySelectorAll("iframe")).forEach(frame=>{try{if(frame.contentDocument&&frame.contentWindow.location.origin===location.origin)count+=fields(frame.contentDocument);}catch(_){}});
+  return count;
+ }
+ if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+ if(window.__samanBarcode&&window.__samanBarcode.clear)window.__samanBarcode.clear();
+ return fields(document);
+}
+END FILE: app/src/main/assets/web/reset-search.js
+
+
+==============================================================================
+FILE: app/src/main/java/ir/library123057/app/AppConfig.kt
+BLOB: b9c50a2305ecf860cdc7751b33163f49eb1630b3
+==============================================================================
+package ir.library123057.app
+
+/**
+ * Central navigation configuration.
+ * Supply the full HTTPS addresses of the authenticated library pages here.
+ * Unverified URLs are intentionally empty; long-press a tab or membership
+ * button to configure it locally without a new APK.
+ * Existing locally saved bookmark links take precedence over these defaults.
+ */
+object AppConfig {
+    // Main public library portal.
+    const val HOME_URL = BuildConfig.WEBSITE_URL
+
+    // وضعیت مدارک: exact staff document status URL.
+    const val STATUS_URL = ""
+
+    // امانت: exact staff loan URL.
+    const val LOAN_URL = ""
+
+    // بازگشت: exact staff return URL.
+    const val RETURN_URL = ""
+
+    // تمدید یا عضویت جدید: exact membership/renewal URL.
+    const val MEMBERSHIP_URL = ""
+
+    val staffDefaults: List<String>
+        get() = listOf(STATUS_URL, LOAN_URL, RETURN_URL, MEMBERSHIP_URL)
+}
+
+END FILE: app/src/main/java/ir/library123057/app/AppConfig.kt
+
+
+==============================================================================
+FILE: app/src/main/java/ir/library123057/app/LibraryApplication.kt
+BLOB: 8801461e4e8edd8ab531b76ce83fc3a9fe846fdb
+==============================================================================
+package ir.library123057.app
+
+import android.app.Application
+import android.os.Build
+import android.webkit.WebView
+
+class LibraryApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        // Separate storage/cookies/cache from the authenticated staff WebViews.
+        // Must run before any WebView is initialized in the membership process.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P &&
+            getProcessName() == "$packageName:membership") {
+            WebView.setDataDirectorySuffix("membership")
+        }
+    }
+}
+
+END FILE: app/src/main/java/ir/library123057/app/LibraryApplication.kt
+
+
+==============================================================================
+FILE: app/src/main/java/ir/library123057/app/LibraryTools.kt
+BLOB: 4325f2b1b7701b6a71021327ea1059b3f7902f55
+==============================================================================
+package ir.library123057.app
+
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.graphics.Typeface
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import android.text.InputType
+import android.view.View
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
+import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
+import com.google.zxing.BarcodeFormat
+import com.journeyapps.barcodescanner.BarcodeCallback
+import com.journeyapps.barcodescanner.BarcodeResult
+import com.journeyapps.barcodescanner.DefaultDecoderFactory
+import ir.library123057.app.databinding.ActivityMainBinding
+import org.json.JSONObject
+import java.util.Locale
+
+class LibraryTools(
+    private val activity: MainActivity,
+    private val binding: ActivityMainBinding,
+    private val web: () -> android.webkit.WebView,
+    private val trusted: (Uri) -> Boolean,
+    private val open: (String) -> Unit,
+    private val message: (String) -> Unit
+) {
+    private val prefs = activity.getSharedPreferences("library_tools", Context.MODE_PRIVATE)
+    private val handler = Handler(Looper.getMainLooper())
+    private var scanUrl: String? = null
+    private var scanning = false
+    private var cameraRunning = false
+    private var torch = false
+    private val timeout = Runnable { if (scanning) { cancelScan(); message("بارکد پیدا نشد. دوباره تلاش کنید.") } }
+    private val slotIds = listOf(R.id.navStatus, R.id.navLoan, R.id.navReturn)
+    private val labels = listOf("وضعیت مدارک","امانت","بازگشت","تمدید یا عضویت جدید")
+    private val permission = activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted && scanUrl != null) startCamera()
+        else { cancelScan(); message("مجوز دوربین داده نشد؛ ورود دستی در دسترس است.") }
+    }
+
+    private fun libraryAddress(uri: Uri): Boolean {
+        val host = uri.host.orEmpty().lowercase(Locale.ROOT)
+        return uri.scheme.equals("https",true) && uri.userInfo == null && uri.port in listOf(-1,443) &&
+            (host == "samanpl.ir" || host.endsWith(".samanpl.ir"))
+    }
+    fun target(i: Int): String? = (prefs.getString("bookmark_$i",null)?.let { normalize(it) }
+        ?: normalize(AppConfig.staffDefaults[i]))
+    fun isSavedOrigin(uri: Uri): Boolean = libraryAddress(uri) && (0..3).any { i ->
+        target(i)?.let { Uri.parse(it).host.equals(uri.host,true) } == true
+    }
+    private fun normalize(raw: String): String? {
+        val value = raw.trim()
+        if (value.isEmpty()) return null
+        val url = if (value.startsWith("/") && !value.startsWith("//")) AppConfig.HOME_URL.trimEnd('/')+value
+            else if (!value.contains("://")) "https://"+value else value
+        val uri = Uri.parse(url)
+        return url.takeIf { libraryAddress(uri) }
+    }
+    fun setup() {
+        // Existing bookmark preferences keep the same keys when moved to bottom navigation.
+        slotIds.forEachIndexed { i, id ->
+            binding.bottomNavigation.findViewById<View>(id)?.setOnLongClickListener { edit(i); true }
+        }
+        binding.membershipButton.setOnClickListener {
+            val url = target(3)
+            if (url == null) edit(3) else open(url)
+        }
+        binding.membershipButton.setOnLongClickListener { edit(3); true }
+        binding.headerRefresh.setOnLongClickListener {
+            val hidden = prefs.getBoolean("hide_support",true)
+            AlertDialog.Builder(activity).setTitle("تنظیمات نمایش")
+                .setItems(arrayOf(if (hidden) "نمایش پنجره خدمات سایت" else "مخفی کردن پنجره خدمات سایت","کپی نشانی صفحه")) { _, which ->
+                    if (which == 0) {
+                        prefs.edit().putBoolean("hide_support",!hidden).apply()
+                        web().reload()
+                    } else {
+                        val url = web().url.orEmpty()
+                        val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Library URL",url))
+                        message("نشانی صفحه کپی شد.")
+                    }
+                }.show()
+            true
+        }
+        binding.scanManual.setOnClickListener { manual() }
+        binding.scanCancel.setOnClickListener { cancelScan() }
+        binding.scanTorch.setOnClickListener {
+            if (cameraRunning) {
+                torch = !torch
+                if (torch) binding.barcodeCamera.setTorchOn() else binding.barcodeCamera.setTorchOff()
+            }
+        }
+        binding.barcodeCamera.barcodeView.decoderFactory = DefaultDecoderFactory(listOf(
+            BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.CODE_93, BarcodeFormat.CODABAR,
+            BarcodeFormat.ITF, BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
+            BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX
+        ))
+        binding.barcodeCamera.setStatusText("")
+    }
+    fun setupWebBridge(view: android.webkit.WebView) {
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            WebViewCompat.addWebMessageListener(view,"SLibraryScan",setOf("https://samanpl.ir","https://*.samanpl.ir")) { view, msg, origin, mainFrame, _ ->
+                val current = view.url?.let { Uri.parse(it) }
+                if (view === web() && mainFrame && current != null && trusted(current) && trusted(origin) &&
+                    current.host.equals(origin.host,true)) {
+                    when (msg.data) {
+                        "scan" -> requestScan()
+                        "modal:1" -> activity.setModalState(view, true)
+                        "modal:0" -> activity.setModalState(view, false)
+                        "edit" -> {
+                            val original = view.url
+                            if (!view.hasFocus()) view.requestFocus()
+                            view.postDelayed({
+                                if (view === web() && view.url == original && !activity.isFinishing) {
+                                    view.evaluateJavascript("(function(){var e=document.activeElement;return !!(e && (e.matches(\"input:not([readonly]):not([disabled]):not([type=hidden]),textarea:not([readonly]):not([disabled]),[contenteditable=true]\")));})()") { result ->
+                                        if (result == "true" && view === web() && view.url == original) {
+                                            (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
+                                        }
+                                    }
+                                }
+                            }, 100)
+                        }
+                    }
+                }
+            }
+        }
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            val script = """
+                (function(){
+                  if(self!==top)return;
+                  var value='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+                  function fix(){document.querySelectorAll('meta[name="viewport"]').forEach(function(v){if(v.content!==value)v.content=value;});}
+                  var ob=new MutationObserver(fix);ob.observe(document,{childList:true,subtree:true});
+                  document.addEventListener('DOMContentLoaded',function(){ob.disconnect();if(!document.querySelector('meta[name="viewport"]')&&document.head){var m=document.createElement('meta');m.name='viewport';m.content=value;document.head.appendChild(m);}fix();},{once:true});
+                })();
+            """.trimIndent()
+            WebViewCompat.addDocumentStartJavaScript(view,script,setOf("https://samanpl.ir","https://*.samanpl.ir"))
+        }
+    }
+    fun edit(i: Int) {
+        val input = EditText(activity).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            setSingleLine(true)
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+            textDirection = View.TEXT_DIRECTION_LTR
+            hint = "https://123057.samanpl.ir/..."
+            setText(target(i).orEmpty())
+            setSelectAllOnFocus(true)
+        }
+        val wrap = android.widget.LinearLayout(activity).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            val p = (20*resources.displayMetrics.density).toInt()
+            setPadding(p,p,p,0)
+            addView(input)
+        }
+        val dialog = AlertDialog.Builder(activity).setTitle("ویرایش میان‌بر "+labels[i])
+            .setMessage("لینک سامانه کتابخانه را وارد کنید یا از صفحه فعلی استفاده کنید.")
+            .setView(wrap).setPositiveButton("ذخیره",null)
+            .setNeutralButton("لینک صفحه فعلی",null).setNegativeButton("انصراف",null).create()
+        dialog.setOnShowListener {
+            dialog.window?.decorView?.layoutDirection = View.LAYOUT_DIRECTION_RTL
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener { input.setText(web().url.orEmpty()) }
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val raw = input.text.toString().trim()
+                val normalized = normalize(raw)
+                if (raw.isNotEmpty() && normalized == null) {
+                    input.error = "فقط لینک HTTPS سامانه samanpl.ir مجاز است."
+                } else {
+                    if (normalized == null) prefs.edit().remove("bookmark_$i").apply()
+                    else prefs.edit().putString("bookmark_$i",normalized).apply()
+                    dialog.dismiss(); message("میان‌بر ذخیره شد.")
+                }
+            }
+        }
+        dialog.show()
+    }
+    fun requestScan() {
+        if (scanning || scanUrl != null || activity.isFinishing || activity.isDestroyed) return
+        val url = web().url ?: return
+        if (!trusted(Uri.parse(url))) return
+        scanUrl = url
+        if (!activity.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
+            cancelScan(); message("این دستگاه دوربین ندارد."); return
+        }
+        if (ContextCompat.checkSelfPermission(activity,Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) startCamera()
+        else permission.launch(Manifest.permission.CAMERA)
+    }
+    private fun startCamera() {
+        if (scanUrl != web().url) { cancelScan(); return }
+        scanning = true
+        binding.scanPanel.visibility = View.VISIBLE
+        binding.scanPanel.bringToFront()
+        web().clearFocus()
+        (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(web().windowToken,0)
+        binding.barcodeCamera.decodeSingle(object : BarcodeCallback {
+            override fun barcodeResult(result: BarcodeResult) {
+                val code = result.text
+                val url = scanUrl
+                if (!scanning || code.isNullOrBlank()) return
+                val targetView = web()
+                cancelScan()
+                if (url == null || url != targetView.url || !trusted(Uri.parse(url))) return
+                targetView.requestFocus()
+                targetView.evaluateJavascript("(function(){return !!(window.__samanBarcode && window.__samanBarcode.fill("+JSONObject.quote(code)+"));})()") {
+                    if (targetView !== web() || targetView.url != url || scanning || activity.isFinishing || activity.isDestroyed) return@evaluateJavascript
+                    if (it == "true") {
+                        message("بارکد خوانده شد: "+code)
+                        // Emulate the Enter suffix of a physical keyboard-wedge barcode reader.
+                        // Use one native key down/up pair, not a second search button click.
+                        targetView.evaluateJavascript("(function(){return !!(window.__samanBarcode && window.__samanBarcode.takeEnter());})()") { ready ->
+                            if (ready == "true" && targetView === web() && targetView.url == url &&
+                                !scanning && targetView.hasFocus() && !activity.isFinishing && !activity.isDestroyed) {
+                                val downTime = android.os.SystemClock.uptimeMillis()
+                                targetView.dispatchKeyEvent(android.view.KeyEvent(downTime, downTime,
+                                    android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER, 0))
+                                targetView.dispatchKeyEvent(android.view.KeyEvent(downTime, android.os.SystemClock.uptimeMillis(),
+                                    android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER, 0))
+                            }
+                        }
+                        runCatching {
+                            val tone = android.media.ToneGenerator(android.media.AudioManager.STREAM_MUSIC,65)
+                            tone.startTone(android.media.ToneGenerator.TONE_PROP_BEEP,110)
+                            handler.postDelayed({tone.release()},180)
+                        }
+                    } else message("فیلد بارکد پیدا نشد؛ دوباره روی آن بزنید.")
+                }
+            }
+        })
+        resumeCamera()
+        handler.removeCallbacks(timeout)
+        handler.postDelayed(timeout,45000)
+    }
+    fun pauseCamera() {
+        if (cameraRunning) {
+            runCatching { binding.barcodeCamera.setTorchOff(); binding.barcodeCamera.pause() }
+            cameraRunning = false; torch = false
+        }
+    }
+    fun resumeCamera() {
+        if (!scanning || cameraRunning || ContextCompat.checkSelfPermission(activity,Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED) return
+        try { binding.barcodeCamera.resume(); cameraRunning=true }
+        catch(e: Exception) { cancelScan(); message("دوربین در دسترس نیست.") }
+    }
+    fun cancelScan(): Boolean {
+        val active = scanning || scanUrl != null
+        handler.removeCallbacks(timeout)
+        pauseCamera()
+        scanning=false;scanUrl=null
+        binding.scanPanel.visibility=View.GONE
+        return active
+    }
+    private fun manual() {
+        val url=scanUrl
+        cancelScan()
+        if (url != null && url == web().url) {
+            web().requestFocus()
+            web().evaluateJavascript("window.__samanBarcode && window.__samanBarcode.manual()") {
+                (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(web(),InputMethodManager.SHOW_IMPLICIT)
+            }
+        }
+    }
+}
+
+END FILE: app/src/main/java/ir/library123057/app/LibraryTools.kt
