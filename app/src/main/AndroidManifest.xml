@@ -12,7 +12,7 @@
             android:configChanges="keyboardHidden|orientation|screenSize" android:windowSoftInputMode="adjustResize">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
-        <activity android:name=".MembershipActivity" android:exported="false" android:process=":membership"
+        <activity android:name=".MembershipActivity" android:exported="false" android:process=":membership" android:launchMode="singleTop"
             android:hardwareAccelerated="true" android:theme="@style/Theme.SamanLibrary"
             android:configChanges="keyboardHidden|orientation|screenSize" android:windowSoftInputMode="adjustResize"/>
     </application>

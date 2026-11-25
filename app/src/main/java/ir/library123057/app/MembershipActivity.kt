@@ -35,6 +35,8 @@ class MembershipActivity : AppCompatActivity() {
     private var browser: WebView? = null
     private var bar: ProgressBar? = null
     private var startUrl = ""
+    private var earlyViewport = false
+    private val viewportScript = """(function(){if(self!==top)return;function fix(){if(!document.head)return false;var m=document.querySelector('meta[name=viewport]');if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}m.content='width=device-width, initial-scale=1';return true;}if(!fix()){var ob=new MutationObserver(function(){if(fix())ob.disconnect();});ob.observe(document,{childList:true,subtree:true});}document.addEventListener('DOMContentLoaded',fix,{once:true});})()"""
     private fun allowed(uri: Uri): Boolean {
         val host = uri.host.orEmpty().lowercase(Locale.ROOT)
         return uri.scheme.equals("https",true) && uri.userInfo == null && uri.port in listOf(-1,443) &&
@@ -119,6 +121,9 @@ class MembershipActivity : AppCompatActivity() {
             setGeolocationEnabled(false)
             safeBrowsingEnabled=true
         }
+        if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            earlyViewport = runCatching { androidx.webkit.WebViewCompat.addDocumentStartJavaScript(w,viewportScript,setOf("https://samanpl.ir","https://*.samanpl.ir")); true }.getOrDefault(false)
+        }
         CookieManager.getInstance().apply { setAcceptCookie(true);setAcceptThirdPartyCookies(w,false) }
         w.webChromeClient=object:WebChromeClient(){
             override fun onProgressChanged(view:WebView,newProgress:Int){
@@ -139,7 +144,7 @@ class MembershipActivity : AppCompatActivity() {
                 if(url!=null&&!allowed(Uri.parse(url)))view.stopLoading()
             }
             override fun onPageFinished(view:WebView,url:String?){
-                if(url!=null&&allowed(Uri.parse(url))&&view.url==url) {
+                if(!earlyViewport&&url!=null&&allowed(Uri.parse(url))&&view.url==url) {
                     view.evaluateJavascript("(function(){if(self!==top)return;var m=document.querySelector('meta[name=viewport]');if(!m&&document.head){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}if(m)m.content='width=device-width, initial-scale=1';})()",null)
                 }
             }
@@ -153,6 +158,15 @@ class MembershipActivity : AppCompatActivity() {
         })
         val previous=savedInstanceState?.getBundle("membership_web")
         if(previous==null||w.restoreState(previous)==null)w.loadUrl(startUrl)
+    }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val url = intent.getStringExtra(EXTRA_URL).orEmpty()
+        if (allowed(Uri.parse(url)) && url != startUrl) {
+            setIntent(intent)
+            startUrl = url
+            browser?.loadUrl(url)
+        }
     }
     override fun onSaveInstanceState(outState:Bundle){
         val state=Bundle()

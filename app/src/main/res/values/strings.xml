@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">کتابخانه صفی‌آباد</string>
     <string name="library_full_name">کتابخانه عمومی سید احمد خمینی صفی‌آباد</string>
-    <string name="app_version">نسخه ۱.۵.۱</string>
+    <string name="app_version">نسخه ۱.۶.۰</string>
     <string name="nav_home">خانه</string>
     <string name="nav_status">وضعیت مدارک</string>
     <string name="nav_loan">امانت</string>

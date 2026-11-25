@@ -82,7 +82,7 @@ class LibraryTools(
                 .setItems(arrayOf(if (hidden) "نمایش پنجره خدمات سایت" else "مخفی کردن پنجره خدمات سایت","کپی نشانی صفحه")) { _, which ->
                     if (which == 0) {
                         prefs.edit().putBoolean("hide_support",!hidden).apply()
-                        web().reload()
+                        activity.updateSupportSetting()
                     } else {
                         val url = web().url.orEmpty()
                         val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -134,17 +134,10 @@ class LibraryTools(
                 }
             }
         }
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
-            val script = """
-                (function(){
-                  if(self!==top)return;
-                  var value='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
-                  function fix(){document.querySelectorAll('meta[name="viewport"]').forEach(function(v){if(v.content!==value)v.content=value;});}
-                  var ob=new MutationObserver(fix);ob.observe(document,{childList:true,subtree:true});
-                  document.addEventListener('DOMContentLoaded',function(){ob.disconnect();if(!document.querySelector('meta[name="viewport"]')&&document.head){var m=document.createElement('meta');m.name='viewport';m.content=value;document.head.appendChild(m);}fix();},{once:true});
-                })();
-            """.trimIndent()
-            WebViewCompat.addDocumentStartJavaScript(view,script,setOf("https://samanpl.ir","https://*.samanpl.ir"))
+    }
+    fun removeWebBridge(view: android.webkit.WebView) {
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            runCatching { WebViewCompat.removeWebMessageListener(view,"SLibraryScan") }
         }
     }
     fun edit(i: Int) {

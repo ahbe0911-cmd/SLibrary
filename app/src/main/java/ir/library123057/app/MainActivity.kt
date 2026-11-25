@@ -99,6 +99,7 @@ class MainActivity : AppCompatActivity() {
         setupWebView(web)
         tools.setup()
         tools.setupWebBridge(web)
+        optimizer.install(web)
         setupNavigation()
         binding.headerRefresh.setOnClickListener { retry() }
         binding.retryButton.setOnClickListener { retry() }
@@ -218,18 +219,14 @@ class MainActivity : AppCompatActivity() {
                     showError(getString(R.string.access_denied), "برای امنیت، صفحات خارجی در مرورگر باز می‌شوند.", AppConfig.HOME_URL)
                 }
             }
-            override fun onPageCommitVisible(view: WebView, url: String?) {
-                super.onPageCommitVisible(view, url)
-                if (view === web && failedUrl == null && sameUrl(view.url, url)) optimizer.apply(view, url)
-            }
             override fun onPageFinished(view: WebView, url: String?) {
                 super.onPageFinished(view, url)
                 val slot = slotFor(view) ?: return
                 if (!sameUrl(view.url, url) && slot.errorUrl == null) return
                 slot.loading = false; slot.progress = 100
+                if (slot.errorUrl == null) optimizer.onFinished(view,url)
                 if (view !== web) return
                 if (failedUrl != null) { finishLoading(); return }
-                optimizer.apply(view, url)
                 finishLoading()
                 updateNavigation(url)
             }
@@ -345,14 +342,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun slotFor(view: WebView): PageSlot? = pages.values.firstOrNull { it.view === view }
 
+    private var lastMembershipLaunch = -2000L
     private fun openMembership(url: String) {
         if (!trusted(Uri.parse(url))) { message("آدرس صفحه مجاز نیست."); return }
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastMembershipLaunch < 1000L) return
+        lastMembershipLaunch = now
         tools.cancelScan()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             startActivity(Intent(this, MembershipActivity::class.java).putExtra(MembershipActivity.EXTRA_URL, url))
         } else {
             if (!launch(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE))) message("مرورگر برای عضویت در دسترس نیست.")
         }
+    }
+
+    fun updateSupportSetting() {
+        pages.values.forEach { optimizer.updateSetting(it.view) }
+        retry()
     }
 
     fun setModalState(view: WebView, open: Boolean) {
@@ -374,6 +380,7 @@ class MainActivity : AppCompatActivity() {
         binding.webHost.addView(v)
         setupWebView(v)
         tools.setupWebBridge(v)
+        optimizer.install(v)
         return v
     }
 
@@ -432,13 +439,15 @@ class MainActivity : AppCompatActivity() {
             // Retain DOM and scroll, but clear transactional search inputs before reuse.
             if (!slot.loading) {
                 if (key != R.id.navHome) optimizer.resetSearch(web)
-                optimizer.apply(web, web.url)
+                optimizer.resume(web)
             }
         }
         trimPages(pageLimit)
     }
 
     private fun disposeWeb(view: WebView) {
+        optimizer.remove(view)
+        tools.removeWebBridge(view)
         view.stopLoading()
         view.setDownloadListener(null)
         view.webChromeClient = null
