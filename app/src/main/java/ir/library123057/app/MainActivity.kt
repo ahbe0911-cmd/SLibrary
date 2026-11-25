@@ -34,6 +34,7 @@ import java.util.UUID
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var optimizer: WebViewOptimizer
+    private lateinit var tools: LibraryTools
     private val homeHost = Uri.parse(BuildConfig.WEBSITE_URL).host.orEmpty()
     private var lastBack = 0L
     private var toast: Toast? = null
@@ -77,6 +78,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         binding.root.layoutDirection = View.LAYOUT_DIRECTION_RTL
         optimizer = WebViewOptimizer(this)
+        tools = LibraryTools(this, binding, ::trusted, ::loadPage, ::message)
         splash.setOnExitAnimationListener { p ->
             p.view.animate().alpha(0f).setDuration(220).withEndAction { p.remove() }.start()
         }
@@ -84,6 +86,7 @@ class MainActivity : AppCompatActivity() {
         applyFont(binding.root, ResourcesCompat.getFont(this, R.font.vazir) ?: Typeface.DEFAULT)
         setupWebView()
         setupNavigation()
+        tools.setup()
         binding.headerRefresh.setOnClickListener { retry() }
         binding.retryButton.setOnClickListener { retry() }
         binding.swipeRefresh.setColorSchemeResources(R.color.primary, R.color.accent)
@@ -91,6 +94,7 @@ class MainActivity : AppCompatActivity() {
         binding.swipeRefresh.setOnRefreshListener { retry() }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                if (tools.cancelScan()) return
                 if (binding.webView.canGoBack()) {
                     lastBack = 0
                     beginLoading()
@@ -134,7 +138,8 @@ class MainActivity : AppCompatActivity() {
             domStorageEnabled = true
             cacheMode = WebSettings.LOAD_DEFAULT
             useWideViewPort = true
-            loadWithOverviewMode = false
+            loadWithOverviewMode = true
+            textZoom = 95
             loadsImagesAutomatically = true
             mediaPlaybackRequiresUserGesture = true
             allowFileAccess = false
@@ -159,10 +164,15 @@ class MainActivity : AppCompatActivity() {
         w.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 if (!request.isForMainFrame) return request.url.scheme?.lowercase(Locale.ROOT) !in setOf("https","about","data","blob")
+                if (request.url.scheme == "slibrary-scan") {
+                    if (request.hasGesture() && view.url?.let { trusted(Uri.parse(it)) } == true) tools.requestScan()
+                    return true
+                }
                 return navigate(request.url)
             }
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
+                tools.cancelScan()
                 activeUrl = url
                 lastBack = 0
                 beginLoading()
@@ -172,6 +182,10 @@ class MainActivity : AppCompatActivity() {
                     if (secure(Uri.parse(url))) launch(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                     showError(getString(R.string.access_denied), "برای امنیت، صفحات خارجی در مرورگر باز می‌شوند.", BuildConfig.WEBSITE_URL)
                 }
+            }
+            override fun onPageCommitVisible(view: WebView, url: String?) {
+                super.onPageCommitVisible(view, url)
+                if (failedUrl == null && sameUrl(view.url, url)) optimizer.apply(view, url)
             }
             override fun onPageFinished(view: WebView, url: String?) {
                 super.onPageFinished(view, url)
@@ -248,7 +262,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun secure(u: Uri): Boolean = u.scheme.equals("https",true) && !u.host.isNullOrBlank() && u.userInfo == null
-    private fun trusted(u: Uri): Boolean = secure(u) && u.host.equals(homeHost,true) && u.port in listOf(-1,443)
+    private fun trusted(u: Uri): Boolean = secure(u) && u.port in listOf(-1,443) && (u.host.equals(homeHost,true) || (this::tools.isInitialized && tools.isSavedOrigin(u)))
     private fun sameUrl(a: String?, b: String?): Boolean = a != null && b != null && Uri.parse(a).buildUpon().fragment(null).build() == Uri.parse(b).buildUpon().fragment(null).build()
     private fun navItems() = listOf(Nav(binding.navHome,getString(R.string.path_home)),Nav(binding.navSearch,getString(R.string.path_search)),Nav(binding.navServices,getString(R.string.path_services)),Nav(binding.navContact,getString(R.string.path_contact)))
     private fun navUrl(path: String) = Uri.parse(BuildConfig.WEBSITE_URL).buildUpon().encodedPath(path).clearQuery().fragment(null).build().toString()
@@ -423,9 +437,10 @@ class MainActivity : AppCompatActivity() {
         failedUrl?.let { u -> outState.putString("errorUrl",u); outState.putString("errorTitle",binding.offlineTitle.text.toString()); outState.putString("errorDescription",binding.offlineDescription.text.toString()) }
         super.onSaveInstanceState(outState)
     }
-    override fun onResume() { super.onResume(); binding.webView.onResume() }
-    override fun onPause() { binding.webView.onPause(); CookieManager.getInstance().flush(); super.onPause() }
+    override fun onResume() { super.onResume(); binding.webView.onResume(); tools.resumeCamera() }
+    override fun onPause() { tools.pauseCamera(); binding.webView.onPause(); CookieManager.getInstance().flush(); super.onPause() }
     override fun onDestroy() {
+        tools.cancelScan()
         toast?.cancel()
         fileCallback?.onReceiveValue(null)
         fileCallback = null

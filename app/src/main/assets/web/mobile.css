@@ -20,3 +20,14 @@
  .saman-app-mobile #extra-banner,.saman-app-mobile .desktop-only {display:none !important;}
  */
 }
+/* Compact mobile form and support panel, scoped to app. */
+@media screen and (max-width: 991px) {
+ .saman-app-mobile .form-group {margin-bottom:12px;}
+ .saman-app-mobile .form-control:not(textarea) {font-size:14px !important;min-height:34px;}
+ .saman-app-mobile .input-group {width:100% !important;flex-wrap:nowrap;}
+ .saman-app-mobile .input-group > .form-control {min-width:0 !important;flex-shrink:1;}
+ .saman-app-mobile .card,.saman-app-mobile .panel,.saman-app-mobile .content-wrapper,.saman-app-mobile .main-content,.saman-app-mobile .page-content {max-width:100% !important;min-width:0 !important;}
+ .saman-app-mobile .saman-barcode-actions {display:flex;gap:5px;align-items:center;justify-content:flex-start;flex-wrap:wrap;margin:5px 0 7px;direction:rtl;}
+ .saman-app-mobile .saman-barcode-actions button {border:1px solid #c8e2d7;border-radius:8px;background:#e4f0ea;color:#065f46;padding:5px 9px;font:inherit;font-size:12px;cursor:pointer;min-height:30px;}
+}
+html.saman-app-mobile .saman-support-hidden {display:none !important;visibility:hidden !important;pointer-events:none !important;}

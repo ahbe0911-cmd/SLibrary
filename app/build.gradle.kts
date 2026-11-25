@@ -16,8 +16,8 @@ android {
         applicationId = "ir.library123057.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.1.0"
+        versionCode = 5
+        versionName = "1.2.0"
         buildConfigField("String", "WEBSITE_URL", "\"https://123057.samanpl.ir/\"")
     }
     signingConfigs {
@@ -49,4 +49,6 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.9.0")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("androidx.webkit:webkit:1.11.0")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 }
