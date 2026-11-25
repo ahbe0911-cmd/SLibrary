@@ -1976,3 +1976,169 @@ BLOB: 0c9548d2ad33a77b5332aa7cc3c57e8cb197386e
 ==============================================================================
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#00000000" android:strokeColor="@color/primary" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M6,3 L15,3 L19,7 L19,21 L6,21 Z M15,3 L15,7 L19,7 M9,11 L16,11 M9,15 L11,17 L16,13"/></vector>
 END FILE: app/src/main/res/drawable/ic_document_status.xml
+
+
+==============================================================================
+FILE: app/src/main/res/drawable/ic_home.xml
+BLOB: b0b96cf9695851e076087d8b7be94b52d000e338
+==============================================================================
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#00000000" android:strokeColor="@color/primary" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M3,10 L12,3 L21,10 M5,9 L5,21 L19,21 L19,9 M9,21 L9,14 L15,14 L15,21"/></vector>
+END FILE: app/src/main/res/drawable/ic_home.xml
+
+
+==============================================================================
+FILE: app/src/main/res/drawable/ic_launcher_foreground.xml
+BLOB: 6c35450ae97191b4278e3fc70b43110e365ce3b8
+==============================================================================
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#FFFFFF" android:pathData="M54,44 C46,37 36,36 28,39 L28,73 C38,70 47,71 54,78 C61,71 70,70 80,73 L80,39 C72,36 62,37 54,44 Z"/><path android:fillColor="#00000000" android:strokeColor="#065F46" android:strokeWidth="2.6" android:strokeLineCap="round" android:pathData="M54,44 L54,76 M35,48 Q43,47 48,51 M35,57 Q43,56 48,60 M60,51 Q67,47 73,48 M60,60 Q67,56 73,57"/><path android:fillColor="#D4AF37" android:pathData="M54,22 L57,30 L65,33 L57,36 L54,44 L51,36 L43,33 L51,30 Z"/></vector>
+END FILE: app/src/main/res/drawable/ic_launcher_foreground.xml
+
+
+==============================================================================
+FILE: app/src/main/res/drawable/ic_loan.xml
+BLOB: dd4efe7f3df50bfded827aac565dcda18585a4e3
+==============================================================================
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#00000000" android:strokeColor="@color/primary" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M3,4 L11,4 Q13,4 13,6 L13,16 Q11,14 9,14 L3,14 Z M13,6 Q15,4 17,4 L21,4 L21,9 M6,18 L10,18 M16,18 L22,18 M19,15 L22,18 L19,21"/></vector>
+END FILE: app/src/main/res/drawable/ic_loan.xml
+
+
+==============================================================================
+FILE: app/src/main/res/drawable/ic_offline.xml
+BLOB: 2a4e4b88d3bbc2ee5e5ded7957335318c9c8856e
+==============================================================================
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#00000000" android:strokeColor="@color/primary" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M2,2 L22,22 M2.5,8.5 C4,7.2 5.5,6.4 7,6 M11,5 C15,4.7 19,6 21.5,8.5 M5.5,12 C7,10.7 9,10 10,10 M14.5,10.5 C16,11 17.5,11.5 18.5,12 M8.5,15.5 C10,14.2 12,14 13,14.5 M12,19 L12,20"/></vector>
+END FILE: app/src/main/res/drawable/ic_offline.xml
+
+
+==============================================================================
+FILE: app/src/main/res/drawable/ic_refresh.xml
+BLOB: 10a5c0c2aee59c04afd809343580c5d32cb2278b
+==============================================================================
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#00000000" android:strokeColor="@color/primary" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M20,8 A8,8 0,1 0,20 16 M20,3 L20,8 L15,8"/></vector>
+END FILE: app/src/main/res/drawable/ic_refresh.xml
+
+
+==============================================================================
+FILE: app/src/main/res/drawable/ic_return_book.xml
+BLOB: da82a09fb91909aa36e7013551db0cbbc975514a
+==============================================================================
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#00000000" android:strokeColor="@color/primary" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M11,5 L5,5 L5,15 L11,15 Q13,15 13,17 L13,7 Q13,5 11,5 Z M13,7 Q15,5 17,5 L21,5 L21,11 M21,18 L15,18 M18,15 L15,18 L18,21"/></vector>
+END FILE: app/src/main/res/drawable/ic_return_book.xml
+
+
+==============================================================================
+FILE: app/src/main/res/drawable/ic_search.xml
+BLOB: aee59415fa9972fb6be39c6bf54cd0b930135e25
+==============================================================================
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24"><path android:fillColor="#00000000" android:strokeColor="@color/primary" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M10.5,3 A7.5,7.5 0,1 0,10.5 18 A7.5,7.5 0,1 0,10.5 3 M16,16 L21,21"/></vector>
+END FILE: app/src/main/res/drawable/ic_search.xml
+
+
+==============================================================================
+FILE: app/src/main/res/drawable/ic_splash.xml
+BLOB: 6c35450ae97191b4278e3fc70b43110e365ce3b8
+==============================================================================
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#FFFFFF" android:pathData="M54,44 C46,37 36,36 28,39 L28,73 C38,70 47,71 54,78 C61,71 70,70 80,73 L80,39 C72,36 62,37 54,44 Z"/><path android:fillColor="#00000000" android:strokeColor="#065F46" android:strokeWidth="2.6" android:strokeLineCap="round" android:pathData="M54,44 L54,76 M35,48 Q43,47 48,51 M35,57 Q43,56 48,60 M60,51 Q67,47 73,48 M60,60 Q67,56 73,57"/><path android:fillColor="#D4AF37" android:pathData="M54,22 L57,30 L65,33 L57,36 L54,44 L51,36 L43,33 L51,30 Z"/></vector>
+END FILE: app/src/main/res/drawable/ic_splash.xml
+
+
+==============================================================================
+FILE: app/src/main/res/drawable/nav_item_background.xml
+BLOB: 86a76baeebe2841d09d1184c09ba8047287f5ff7
+==============================================================================
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/nav_ripple"><item><selector><item android:state_selected="true"><shape><solid android:color="@color/primary_light"/><corners android:radius="14dp"/></shape></item><item><shape><solid android:color="@android:color/transparent"/><corners android:radius="14dp"/></shape></item></selector></item><item android:id="@android:id/mask"><shape><solid android:color="@color/surface"/><corners android:radius="14dp"/></shape></item></ripple>
+END FILE: app/src/main/res/drawable/nav_item_background.xml
+
+
+==============================================================================
+FILE: app/src/main/res/drawable/scan_panel_bg.xml
+BLOB: a4152550e59da7ff8b721f6c5940982c229db481
+==============================================================================
+<shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="@color/surface"/><corners android:radius="14dp"/><stroke android:width="1dp" android:color="@color/primary"/></shape>
+END FILE: app/src/main/res/drawable/scan_panel_bg.xml
+
+
+==============================================================================
+FILE: app/src/main/res/layout/activity_main.xml
+BLOB: 9c38be4e160c879d24ac3611510425ea5d4790d9
+==============================================================================
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/mainRoot" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:layoutDirection="rtl" android:background="@color/app_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="64dp"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layoutDirection="rtl"
+        android:paddingStart="8dp" android:paddingEnd="2dp" android:background="@color/surface"
+        android:clipChildren="false" android:clipToPadding="false">
+        <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_book" android:importantForAccessibility="no"/>
+        <TextView android:id="@+id/headerTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:text="@string/app_name"
+            android:textSize="15sp" android:textStyle="bold" android:textColor="@color/primary" android:maxLines="2" android:ellipsize="end"/>
+        <TextView android:id="@+id/membershipButton" android:layout_width="wrap_content" android:layout_height="44dp"
+            android:minWidth="120dp" android:maxWidth="164dp" android:paddingStart="9dp" android:paddingEnd="9dp"
+            android:gravity="center" android:text="@string/membership_button" android:textColor="@android:color/white"
+            android:textSize="12sp" android:textStyle="bold" android:maxLines="2" android:background="@drawable/bg_membership_pill"
+            android:elevation="3dp" android:stateListAnimator="@animator/membership_press" android:clickable="true" android:focusable="true"/>
+        <ImageButton android:id="@+id/headerRefresh" android:layout_width="48dp" android:layout_height="48dp"
+            android:padding="12dp" android:background="?attr/selectableItemBackgroundBorderless" android:src="@drawable/ic_refresh"
+            android:scaleType="centerInside" android:contentDescription="@string/refresh"/>
+    </LinearLayout>
+    <ProgressBar android:id="@+id/pageProgress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="3dp" android:max="100" android:progressTint="@color/accent" android:progressBackgroundTint="@color/progress_track" android:visibility="invisible" android:contentDescription="@string/loading"/>
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout android:id="@+id/swipeRefresh" android:layout_width="match_parent" android:layout_height="match_parent">
+            <FrameLayout android:id="@+id/webHost" android:layout_width="match_parent" android:layout_height="match_parent" android:descendantFocusability="afterDescendants">
+                <WebView android:id="@+id/webView" android:layout_width="match_parent" android:layout_height="match_parent" android:layoutDirection="rtl" android:background="@color/surface" android:overScrollMode="never" android:scrollbars="vertical" android:focusable="true" android:focusableInTouchMode="true"/>
+            </FrameLayout>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+        <ScrollView android:id="@+id/offlineScreen" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/app_background" android:fillViewport="true" android:visibility="gone">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:padding="28dp">
+                <FrameLayout android:layout_width="96dp" android:layout_height="96dp" android:background="@drawable/bg_offline_icon"><ImageView android:layout_width="46dp" android:layout_height="46dp" android:layout_gravity="center" android:src="@drawable/ic_offline" android:importantForAccessibility="no"/></FrameLayout>
+                <TextView android:id="@+id/offlineTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="@string/offline_title" android:textSize="20sp" android:textStyle="bold" android:textColor="@color/text_primary" android:gravity="center" android:accessibilityLiveRegion="polite"/>
+                <TextView android:id="@+id/offlineDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/offline_description" android:textSize="14sp" android:textColor="@color/text_secondary" android:gravity="center" android:lineSpacingExtra="5dp"/>
+                <androidx.appcompat.widget.AppCompatButton android:id="@+id/retryButton" android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="28dp" android:background="@drawable/btn_primary" android:backgroundTint="@null" android:text="@string/retry" android:textColor="@color/surface" android:textSize="15sp" android:textStyle="bold" android:textAllCaps="false" android:stateListAnimator="@null"/>
+            </LinearLayout>
+        </ScrollView>
+        <LinearLayout android:id="@+id/scanPanel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:layout_margin="8dp" android:orientation="vertical" android:padding="8dp" android:background="@drawable/scan_panel_bg" android:elevation="12dp" android:visibility="gone" android:clickable="true">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="دوربین فعال است؛ بارکد را مقابل آن بگیرید" android:textColor="@color/primary" android:textSize="13sp" android:textStyle="bold"/>
+            <com.journeyapps.barcodescanner.DecoratedBarcodeView android:id="@+id/barcodeCamera" android:layout_width="match_parent" android:layout_height="152dp" android:layout_marginTop="4dp"/>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="44dp" android:orientation="horizontal">
+                <TextView android:id="@+id/scanManual" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="ورود دستی" android:textColor="@color/primary" android:textSize="13sp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/scanTorch" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="چراغ" android:textColor="@color/primary" android:textSize="13sp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/scanCancel" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="بستن" android:textColor="@color/primary" android:textSize="13sp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true"/>
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider"/>
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation" android:layout_width="match_parent" android:layout_height="68dp"
+        android:layoutDirection="rtl" android:background="@color/surface" android:elevation="2dp"
+        app:menu="@menu/bottom_navigation" app:labelVisibilityMode="labeled"
+        app:itemHorizontalTranslationEnabled="false" app:itemIconSize="24dp"
+        app:itemIconTint="@color/bottom_nav_color" app:itemTextColor="@color/bottom_nav_color"
+        app:itemTextAppearanceActive="@style/TextAppearance.SamanLibrary.NavActive"
+        app:itemTextAppearanceInactive="@style/TextAppearance.SamanLibrary.NavInactive"
+        app:itemActiveIndicatorStyle="@style/Widget.SamanLibrary.NavIndicator"
+        app:itemRippleColor="@color/nav_ripple"/>
+</LinearLayout>
+
+END FILE: app/src/main/res/layout/activity_main.xml
+
+
+==============================================================================
+FILE: app/src/main/res/menu/bottom_navigation.xml
+BLOB: d410411f1a6f02d73583da5591d30592f83f44fc
+==============================================================================
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/navHome" android:icon="@drawable/ic_home" android:title="@string/nav_home" />
+    <item android:id="@+id/navStatus" android:icon="@drawable/ic_document_status" android:title="@string/nav_status" />
+    <item android:id="@+id/navLoan" android:icon="@drawable/ic_loan" android:title="@string/nav_loan" />
+    <item android:id="@+id/navReturn" android:icon="@drawable/ic_return_book" android:title="@string/nav_return" />
+</menu>
+
+END FILE: app/src/main/res/menu/bottom_navigation.xml
+
+
+==============================================================================
+FILE: app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+BLOB: 3ba147e205a7122b0c04d53f89939621363a3305
+==============================================================================
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@color/primary"/><foreground android:drawable="@drawable/ic_launcher_foreground"/></adaptive-icon>
+END FILE: app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
