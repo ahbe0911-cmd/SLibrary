@@ -1,0 +1,13 @@
+<resources>
+    <color name="primary">#065F46</color>
+    <color name="primary_dark">#064E3B</color>
+    <color name="primary_light">#E4F0EA</color>
+    <color name="accent">#D4AF37</color>
+    <color name="app_background">#F8FAFC</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#64748B</color>
+    <color name="divider">#E2E8F0</color>
+    <color name="progress_track">#E4F0EA</color>
+    <color name="nav_ripple">#22065F46</color>
+</resources>

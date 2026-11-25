@@ -1,0 +1,95 @@
+name: Build SLibrary APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: APK build type
+        required: true
+        default: debug
+        type: choice
+        options: [debug, release]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      BUILD_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type || 'debug' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Install Android SDK
+        run: sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
+      - name: Check sources
+        run: |
+          test -s app/src/main/res/font/vazir.ttf
+          test -s app/src/main/assets/web/mobile.css
+          test -s app/src/main/assets/web/mobile.js
+      - name: Restore release key
+        if: env.BUILD_TYPE == 'release'
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Configure all four Android signing secrets before building Release."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          test -s "$RUNNER_TEMP/release.jks"
+      - name: Build debug APK
+        if: env.BUILD_TYPE == 'debug'
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - name: Build signed release APK
+        if: env.BUILD_TYPE == 'release'
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: gradle --no-daemon --stacktrace :app:lintRelease :app:assembleRelease
+      - name: Verify and package APK
+        run: |
+          set -euo pipefail
+          mkdir -p apk-output
+          SOURCE="app/build/outputs/apk/$BUILD_TYPE/app-$BUILD_TYPE.apk"
+          TOOLS="$ANDROID_HOME/build-tools/34.0.0"
+          "$TOOLS/aapt" dump badging "$SOURCE" > apk-output/apk-info.txt
+          VERSION=$(sed -n "s/^package: .*versionName='\([^']*\)'.*/\1/p" apk-output/apk-info.txt | head -n 1)
+          test -n "$VERSION"
+          APK="SLibrary-v$VERSION-$BUILD_TYPE.apk"
+          cp "$SOURCE" "apk-output/$APK"
+          "$TOOLS/apksigner" verify --verbose --print-certs "apk-output/$APK" > apk-output/signature-info.txt
+          (cd apk-output && sha256sum "$APK" > SHA256SUMS.txt)
+          echo "APK: $APK" >> "$GITHUB_STEP_SUMMARY"
+          echo "Bytes: $(stat -c%s "apk-output/$APK")" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SLibrary-${{ env.BUILD_TYPE }}-APK
+          path: apk-output/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: env.BUILD_TYPE == 'release'
+        with:
+          name: SLibrary-R8-Mapping
+          path: app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: error
+          retention-days: 30

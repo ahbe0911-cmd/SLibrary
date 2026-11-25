@@ -1,0 +1,19 @@
+<resources>
+    <style name="Theme.SamanLibrary" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/primary</item><item name="colorPrimaryDark">@color/primary_dark</item><item name="colorAccent">@color/primary</item>
+        <item name="android:windowBackground">@color/app_background</item><item name="android:statusBarColor">@color/surface</item>
+        <item name="android:navigationBarColor">@color/surface</item><item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item><item name="android:forceDarkAllowed">false</item>
+    </style>
+    <style name="Theme.SamanLibrary.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/primary</item><item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.SamanLibrary</item>
+    </style>
+    <style name="Widget.SamanLibrary.NavItem">
+        <item name="android:layout_width">0dp</item><item name="android:layout_height">match_parent</item><item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item><item name="android:padding">4dp</item><item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/nav_item_color</item><item name="android:drawableTint">@color/nav_item_color</item>
+        <item name="android:drawablePadding">4dp</item><item name="android:background">@drawable/nav_item_background</item>
+        <item name="android:clickable">true</item><item name="android:focusable">true</item><item name="android:maxLines">1</item><item name="android:ellipsize">end</item>
+    </style>
+</resources>

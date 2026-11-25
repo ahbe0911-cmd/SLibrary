@@ -1,0 +1,22 @@
+@media screen and (max-width: 991px) {
+ html.saman-app-mobile, html.saman-app-mobile body { width:100% !important; max-width:100% !important; min-width:0 !important; margin-inline:0 !important; overflow-x:hidden !important; -webkit-text-size-adjust:100%; }
+ @supports(overflow:clip) { html.saman-app-mobile, html.saman-app-mobile body {overflow-x:clip !important;} }
+ .saman-app-mobile *, .saman-app-mobile *::before, .saman-app-mobile *::after {box-sizing:border-box;}
+ .saman-app-mobile main,.saman-app-mobile article,.saman-app-mobile section,.saman-app-mobile .container,.saman-app-mobile .container-fluid {max-width:100% !important;min-width:0 !important;}
+ .saman-app-mobile .container,.saman-app-mobile .container-fluid {width:100% !important;}
+ .saman-app-mobile body > .row,.saman-app-mobile main > .row {max-width:100%;margin-inline:0 !important;}
+ .saman-app-mobile img,.saman-app-mobile video {max-width:100% !important;height:auto !important;}
+ .saman-app-mobile picture,.saman-app-mobile figure,.saman-app-mobile svg,.saman-app-mobile canvas,.saman-app-mobile iframe,.saman-app-mobile embed,.saman-app-mobile object {max-width:100% !important;}
+ .saman-app-mobile p,.saman-app-mobile h1,.saman-app-mobile h2,.saman-app-mobile h3,.saman-app-mobile h4,.saman-app-mobile h5,.saman-app-mobile h6 {overflow-wrap:anywhere;}
+ .saman-app-mobile form,.saman-app-mobile fieldset,.saman-app-mobile .form-group,.saman-app-mobile .input-group,.saman-app-mobile input:not([type=checkbox]):not([type=radio]),.saman-app-mobile textarea,.saman-app-mobile select,.saman-app-mobile .form-control {max-width:100% !important;min-width:0 !important;}
+ .saman-app-mobile .btn,.saman-app-mobile button {max-width:100%;touch-action:manipulation;}
+ .saman-app-mobile .table-responsive,.saman-app-mobile .saman-app-wide-table {display:block !important;max-width:100% !important;min-width:0 !important;overflow-x:auto !important;overscroll-behavior-x:contain;}
+ .saman-app-mobile table.saman-app-wide-table {width:100% !important;}
+ .saman-app-mobile pre {max-width:100%;overflow-x:auto;}
+ .saman-app-mobile .modal-dialog {max-width:calc(100% - 24px) !important;min-width:0 !important;margin-inline:auto !important;}
+ .saman-app-mobile .modal-content,.saman-app-mobile .modal-body,.saman-app-mobile .carousel,.saman-app-mobile .carousel-inner,.saman-app-mobile .swiper,.saman-app-mobile .owl-carousel {max-width:100% !important;min-width:0 !important;}
+ .saman-app-mobile a,.saman-app-mobile button {-webkit-tap-highlight-color:rgba(6,95,70,.12);}
+ /* Optional: verify real selectors before enabling.
+ .saman-app-mobile #extra-banner,.saman-app-mobile .desktop-only {display:none !important;}
+ */
+}
