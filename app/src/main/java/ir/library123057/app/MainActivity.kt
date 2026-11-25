@@ -35,6 +35,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var optimizer: WebViewOptimizer
     private lateinit var tools: LibraryTools
+    private lateinit var web: WebView
+    private var activeKey = R.id.navHome
+    private val pages = LinkedHashMap<Int, PageSlot>(5, 0.75f, true)
+    private val membershipKey = -1
+    private val pageLimit by lazy { if (getSystemService(android.app.ActivityManager::class.java)?.isLowRamDevice == true) 2 else 4 }
+    private data class PageSlot(val view: WebView, val target: String, var progress: Int = 0, var errorUrl: String? = null, var errorTitle: String? = null, var errorDescription: String? = null, var loading: Boolean = false)
     private val homeHost = Uri.parse(AppConfig.HOME_URL).host.orEmpty()
     private var lastBack = 0L
     private var toast: Toast? = null
@@ -54,7 +60,7 @@ class MainActivity : AppCompatActivity() {
         uploadOrigin = null
         if (callback != null) {
             val selected = linkedSetOf<Uri>()
-            if (result.resultCode == Activity.RESULT_OK && origin != null && sameUrl(origin, binding.webView.url)) {
+            if (result.resultCode == Activity.RESULT_OK && origin != null && sameUrl(origin, web.url)) {
                 val data = result.data
                 data?.clipData?.let { clip ->
                     for (i in 0 until clip.itemCount) clip.getItemAt(i).uri?.let { if (validUpload(it)) selected.add(it) }
@@ -78,27 +84,34 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         binding.root.layoutDirection = View.LAYOUT_DIRECTION_RTL
         optimizer = WebViewOptimizer(this)
-        tools = LibraryTools(this, binding, ::trusted, ::loadPage, ::message)
+        web = binding.webView
+        tools = LibraryTools(this, binding, { web }, ::trusted, ::openMembership, ::message)
+        val savedKey = savedInstanceState?.getInt("activeTab", R.id.navHome) ?: R.id.navHome
+        val savedTarget = savedInstanceState?.getString("activeTarget")
+        activeKey = if (savedTarget != null && trusted(Uri.parse(savedTarget))) savedKey else R.id.navHome
+        val initialTarget = if (activeKey == savedKey && savedTarget != null && trusted(Uri.parse(savedTarget))) savedTarget else AppConfig.HOME_URL
+        pages[activeKey] = PageSlot(web, initialTarget)
         splash.setOnExitAnimationListener { p ->
             p.view.animate().alpha(0f).setDuration(220).withEndAction { p.remove() }.start()
         }
         if (Build.VERSION.SDK_INT < 26) window.navigationBarColor = ContextCompat.getColor(this, R.color.primary_dark)
         applyFont(binding.root, ResourcesCompat.getFont(this, R.font.vazir) ?: Typeface.DEFAULT)
-        setupWebView()
+        setupWebView(web)
         tools.setup()
+        tools.setupWebBridge(web)
         setupNavigation()
         binding.headerRefresh.setOnClickListener { retry() }
         binding.retryButton.setOnClickListener { retry() }
         binding.swipeRefresh.setColorSchemeResources(R.color.primary, R.color.accent)
-        binding.swipeRefresh.setOnChildScrollUpCallback { _, _ -> binding.webView.canScrollVertically(-1) }
+        binding.swipeRefresh.setOnChildScrollUpCallback { _, _ -> web.canScrollVertically(-1) }
         binding.swipeRefresh.setOnRefreshListener { retry() }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (tools.cancelScan()) return
-                if (binding.webView.canGoBack()) {
+                if (web.canGoBack()) {
                     lastBack = 0
                     beginLoading()
-                    binding.webView.goBack()
+                    web.goBack()
                 } else {
                     val now = SystemClock.elapsedRealtime()
                     if (lastBack != 0L && now - lastBack <= 2000) finish()
@@ -109,10 +122,10 @@ class MainActivity : AppCompatActivity() {
         savedInstanceState?.getBundle("download")?.let {
             pendingDownload = DownloadInfo(it.getString("url").orEmpty(), it.getString("agent").orEmpty(), it.getString("disposition").orEmpty(), it.getString("mime").orEmpty())
         }
-        val restored = savedInstanceState?.getBundle("web")?.let { binding.webView.restoreState(it) }
-        if (restored == null) loadPage(AppConfig.HOME_URL)
+        val restored = savedInstanceState?.getBundle("web")?.let { web.restoreState(it) }
+        if (restored == null) loadPage(initialTarget)
         else {
-            activeUrl = binding.webView.url
+            activeUrl = web.url
             updateNavigation(activeUrl)
             savedInstanceState?.let { state ->
                 state.getString("errorUrl")?.let { u ->
@@ -130,9 +143,8 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     @Suppress("DEPRECATION")
-    private fun setupWebView() {
+    private fun setupWebView(w: WebView) {
         WebView.setWebContentsDebuggingEnabled(false)
-        val w = binding.webView
         w.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
@@ -170,13 +182,23 @@ class MainActivity : AppCompatActivity() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 if (!request.isForMainFrame) return request.url.scheme?.lowercase(Locale.ROOT) !in setOf("https","about","data","blob")
                 if (request.url.scheme == "slibrary-scan") {
-                    if (request.hasGesture() && view.url?.let { trusted(Uri.parse(it)) } == true) tools.requestScan()
+                    if (view === web && request.hasGesture() && view.url?.let { trusted(Uri.parse(it)) } == true) tools.requestScan()
                     return true
                 }
+                if (view !== web) return !trusted(request.url)
                 return navigate(request.url)
             }
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
+                val slot = slotFor(view) ?: return
+                slot.loading = true; slot.progress = 0; slot.errorUrl = null; slot.errorTitle = null; slot.errorDescription = null
+                if (view !== web) {
+                    if (url != null && !trusted(Uri.parse(url))) {
+                        view.stopLoading()
+                        errorFor(view, getString(R.string.access_denied), "صفحه خارج از سامانه کتابخانه است.", slot.target)
+                    }
+                    return
+                }
                 tools.cancelScan()
                 activeUrl = url
                 lastBack = 0
@@ -190,49 +212,61 @@ class MainActivity : AppCompatActivity() {
             }
             override fun onPageCommitVisible(view: WebView, url: String?) {
                 super.onPageCommitVisible(view, url)
-                if (failedUrl == null && sameUrl(view.url, url)) optimizer.apply(view, url)
+                if (view === web && failedUrl == null && sameUrl(view.url, url)) optimizer.apply(view, url)
             }
             override fun onPageFinished(view: WebView, url: String?) {
                 super.onPageFinished(view, url)
+                val slot = slotFor(view) ?: return
+                if (!sameUrl(view.url, url) && slot.errorUrl == null) return
+                slot.loading = false; slot.progress = 100
+                if (view !== web) return
                 if (failedUrl != null) { finishLoading(); return }
-                if (!sameUrl(view.url, url)) return
                 optimizer.apply(view, url)
                 finishLoading()
                 updateNavigation(url)
             }
             override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
                 super.doUpdateVisitedHistory(view, url, isReload)
-                if (failedUrl == null) updateNavigation(url)
+                if (view === web && failedUrl == null) updateNavigation(url)
             }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (!request.isForMainFrame) return
                 val url = request.url.toString()
-                if (error.errorCode == ERROR_FAILED_SSL_HANDSHAKE) sslError(url)
-                else if (error.errorCode == ERROR_REDIRECT_LOOP) showError("خطا در تغییر مسیر", "لطفاً دوباره تلاش کنید.", url)
-                else connectionError(url)
+                if (error.errorCode == ERROR_FAILED_SSL_HANDSHAKE) errorFor(view, getString(R.string.ssl_error_title), getString(R.string.ssl_error_description), url)
+                else if (error.errorCode == ERROR_REDIRECT_LOOP) errorFor(view, "خطا در تغییر مسیر", "لطفاً دوباره تلاش کنید.", url)
+                else connectionError(view, url)
             }
             override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: WebResourceResponse) {
                 if (!request.isForMainFrame) return
                 val url = request.url.toString()
                 when (errorResponse.statusCode) {
-                    401 -> message("برای دسترسی وارد حساب شوید.")
-                    403 -> message(getString(R.string.access_denied))
-                    404 -> showError(getString(R.string.page_not_found), getString(R.string.page_not_found_description), url)
-                    in 500..599 -> showError(getString(R.string.server_error_title), getString(R.string.server_error_description), url)
+                    401 -> if (view === web) message("برای دسترسی وارد حساب شوید.")
+                    403 -> if (view === web) message(getString(R.string.access_denied))
+                    404 -> errorFor(view, getString(R.string.page_not_found), getString(R.string.page_not_found_description), url)
+                    in 500..599 -> errorFor(view, getString(R.string.server_error_title), getString(R.string.server_error_description), url)
                 }
             }
             override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
                 handler.cancel()
-                if (sameUrl(error.url, activeUrl) || sameUrl(error.url, view.url)) sslError(error.url)
-                else if (!sslWarning) { sslWarning = true; message("یکی از منابع ناامن صفحه مسدود شد.") }
+                if (sameUrl(error.url, view.url) || (view === web && sameUrl(error.url, activeUrl))) {
+                    errorFor(view, getString(R.string.ssl_error_title), getString(R.string.ssl_error_description), error.url)
+                } else if (view === web && !sslWarning) { sslWarning = true; message("یکی از منابع ناامن صفحه مسدود شد.") }
+            }
+            override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                recoverRenderer(view)
+                return true
             }
         }
         w.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
-                binding.pageProgress.progress = newProgress.coerceIn(0,100)
+                val slot = slotFor(view) ?: return
+                slot.progress = newProgress.coerceIn(0,100)
+                if (view !== web) return
+                binding.pageProgress.progress = slot.progress
                 binding.pageProgress.visibility = if (failedUrl == null && newProgress < 100) View.VISIBLE else View.INVISIBLE
             }
             override fun onShowFileChooser(webView: WebView, callback: ValueCallback<Array<Uri>>, params: FileChooserParams): Boolean {
+                if (webView !== web) { callback.onReceiveValue(null); return true }
                 fileCallback?.onReceiveValue(null)
                 fileCallback = null
                 uploadOrigin = null
@@ -262,6 +296,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         w.setDownloadListener { url, agent, disposition, mime, _ ->
+            if (w !== web) return@setDownloadListener
             requestDownload(DownloadInfo(url.orEmpty(),agent.orEmpty(),disposition.orEmpty(),mime.orEmpty()))
         }
     }
@@ -285,40 +320,160 @@ class MainActivity : AppCompatActivity() {
             return false
         }
         if (!trusted(Uri.parse(target))) { message("آدرس صفحه مجاز نیست."); return false }
-        loadPage(target)
+        selectPage(id, target)
         return true
     }
 
     private fun setupNavigation() {
         binding.bottomNavigation.setOnItemSelectedListener { openTab(it.itemId) }
         binding.bottomNavigation.setOnItemReselectedListener { openTab(it.itemId) }
-        updateNavigation(AppConfig.HOME_URL)
+        updateNavigation(null)
     }
 
     private fun updateNavigation(url: String?) {
-        val match = navItems().firstOrNull { sameUrl(it.url, url) } ?: return
-        val item = binding.bottomNavigation.menu.findItem(match.id)
+        val item = binding.bottomNavigation.menu.findItem(activeKey) ?: return
         if (!item.isChecked) item.isChecked = true
+    }
+
+    private fun slotFor(view: WebView): PageSlot? = pages.values.firstOrNull { it.view === view }
+
+    private fun openMembership(url: String) {
+        if (!trusted(Uri.parse(url))) { message("آدرس صفحه مجاز نیست."); return }
+        selectPage(membershipKey, url)
+    }
+
+    private fun newWeb(): WebView {
+        val v = WebView(this)
+        v.layoutParams = android.widget.FrameLayout.LayoutParams(-1, -1)
+        v.layoutDirection = View.LAYOUT_DIRECTION_RTL
+        v.setBackgroundColor(ContextCompat.getColor(this, R.color.surface))
+        v.overScrollMode = View.OVER_SCROLL_NEVER
+        v.isFocusable = true
+        v.isFocusableInTouchMode = true
+        v.visibility = View.GONE
+        binding.webHost.addView(v)
+        setupWebView(v)
+        tools.setupWebBridge(v)
+        return v
+    }
+
+    private fun selectPage(key: Int, target: String) {
+        val previous = pages[activeKey]
+        if (key == activeKey && previous != null && sameUrl(previous.target, target)) {
+            if (failedUrl != null) retry()
+            return
+        }
+        tools.cancelScan()
+        fileCallback?.onReceiveValue(null)
+        fileCallback = null
+        uploadOrigin = null
+        (getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
+            .hideSoftInputFromWindow(web.windowToken, 0)
+        previous?.let {
+            it.errorUrl = failedUrl
+            if (failedUrl != null) {
+                it.errorTitle = binding.offlineTitle.text.toString()
+                it.errorDescription = binding.offlineDescription.text.toString()
+            }
+            web.clearFocus()
+            web.onPause()
+            web.visibility = View.GONE
+        }
+        val old = pages[key]
+        if (old != null && !sameUrl(old.target, target)) {
+            pages.remove(key)
+            disposeWeb(old.view)
+        }
+        val existing = pages[key]
+        val slot = existing ?: PageSlot(newWeb(), target).also { pages[key] = it }
+        activeKey = key
+        web = slot.view
+        activeUrl = web.url
+        failedUrl = slot.errorUrl
+        sslWarning = false
+        binding.swipeRefresh.isRefreshing = false
+        binding.offlineScreen.visibility = View.GONE
+        binding.swipeRefresh.visibility = View.VISIBLE
+        web.visibility = View.VISIBLE
+        web.bringToFront()
+        web.onResume()
+        updateNavigation(web.url)
+        if (existing == null || (web.url == null && !slot.loading)) {
+            loadPage(target)
+        } else if (slot.errorUrl != null) {
+            showError(slot.errorTitle ?: getString(R.string.server_error_title),
+                slot.errorDescription ?: getString(R.string.server_error_description), slot.errorUrl)
+        } else {
+            binding.pageProgress.progress = slot.progress
+            binding.pageProgress.visibility = if (slot.loading) View.VISIBLE else View.INVISIBLE
+            // Retain the actual DOM, form fields, history and scroll position.
+            if (!slot.loading) optimizer.apply(web, web.url)
+        }
+        trimPages(pageLimit)
+    }
+
+    private fun disposeWeb(view: WebView) {
+        view.stopLoading()
+        view.setDownloadListener(null)
+        view.webChromeClient = null
+        view.webViewClient = WebViewClient()
+        binding.webHost.removeView(view)
+        view.destroy()
+    }
+
+    private fun trimPages(limit: Int) {
+        while (pages.size > limit) {
+            val victim = pages.entries.firstOrNull { it.key != activeKey } ?: break
+            val view = victim.value.view
+            pages.remove(victim.key)
+            disposeWeb(view)
+        }
+    }
+
+    private fun recoverRenderer(view: WebView) {
+        val entry = pages.entries.firstOrNull { it.value.view === view } ?: return
+        val key = entry.key
+        val target = entry.value.target
+        pages.remove(key)
+        if (view === web) {
+            tools.cancelScan()
+            fileCallback?.onReceiveValue(null)
+            fileCallback = null; uploadOrigin = null
+            disposeWeb(view)
+            web = newWeb()
+            pages[key] = PageSlot(web, target)
+            web.visibility = View.VISIBLE
+            showError("صفحه نیاز به بارگذاری مجدد دارد", "برای بازیابی صفحه، تلاش مجدد را بزنید.", target)
+        } else disposeWeb(view)
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (this::web.isInitialized && (level == android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
+            level == android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
+            level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND)) trimPages(1)
     }
 
     private fun loadPage(url: String) {
         if (!trusted(Uri.parse(url))) { message("آدرس صفحه مجاز نیست."); return }
         // Ignore repeated taps, including a navigation already in progress.
-        if (failedUrl == null && (sameUrl(binding.webView.url, url) ||
+        if (failedUrl == null && (sameUrl(web.url, url) ||
                 (binding.pageProgress.visibility == View.VISIBLE && sameUrl(activeUrl, url)))) return
-        binding.webView.stopLoading()
+        web.stopLoading()
         activeUrl = url
+        slotFor(web)?.let { it.loading = true; it.progress = 0; it.errorUrl = null; it.errorTitle = null; it.errorDescription = null }
         beginLoading()
         updateNavigation(url)
-        binding.webView.loadUrl(url)
+        web.loadUrl(url)
     }
     private fun retry() {
         failedUrl?.let { loadPage(it); return }
-        val u = binding.webView.url
+        val u = web.url
         if (u == null || !trusted(Uri.parse(u))) loadPage(AppConfig.HOME_URL)
-        else { beginLoading(); binding.webView.reload() }
+        else { beginLoading(); web.reload() }
     }
     private fun beginLoading() {
+        slotFor(web)?.let { it.loading = true; it.progress = 0; it.errorUrl = null; it.errorTitle = null; it.errorDescription = null }
         failedUrl = null; sslWarning = false
         binding.offlineScreen.visibility = View.GONE
         binding.swipeRefresh.visibility = View.VISIBLE
@@ -326,23 +481,31 @@ class MainActivity : AppCompatActivity() {
         binding.pageProgress.visibility = View.VISIBLE
     }
     private fun finishLoading() {
+        slotFor(web)?.let { it.loading = false; it.progress = 100 }
         binding.swipeRefresh.isRefreshing = false
         binding.pageProgress.progress = 100
         binding.pageProgress.visibility = View.INVISIBLE
     }
     private fun showError(title: String, description: String, url: String?) {
         failedUrl = url?.takeIf { trusted(Uri.parse(it)) } ?: activeUrl?.takeIf { trusted(Uri.parse(it)) } ?: AppConfig.HOME_URL
+        slotFor(web)?.let { it.errorUrl = failedUrl; it.errorTitle = title; it.errorDescription = description }
         finishLoading()
         binding.offlineTitle.text = title
         binding.offlineDescription.text = description
         binding.swipeRefresh.visibility = View.INVISIBLE
         binding.offlineScreen.visibility = View.VISIBLE
     }
-    private fun connectionError(url: String?) {
+    private fun errorFor(view: WebView, title: String, description: String, url: String?) {
+        val slot = slotFor(view) ?: return
+        if (view === web) { showError(title, description, url); return }
+        slot.errorUrl = url?.takeIf { trusted(Uri.parse(it)) } ?: slot.target
+        slot.errorTitle = title; slot.errorDescription = description; slot.loading = false; slot.progress = 100
+    }
+    private fun connectionError(view: WebView, url: String?) {
         val cm = getSystemService(ConnectivityManager::class.java)
         val online = cm?.activeNetwork?.let { cm.getNetworkCapabilities(it) }?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
-        if (online) showError(getString(R.string.server_error_title),getString(R.string.server_error_description),url)
-        else showError(getString(R.string.offline_title),getString(R.string.offline_description),url)
+        if (online) errorFor(view,getString(R.string.server_error_title),getString(R.string.server_error_description),url)
+        else errorFor(view,getString(R.string.offline_title),getString(R.string.offline_description),url)
     }
     private fun sslError(url: String?) = showError(getString(R.string.ssl_error_title),getString(R.string.ssl_error_description),url)
 
@@ -449,25 +612,24 @@ class MainActivity : AppCompatActivity() {
         toast?.show()
     }
     override fun onSaveInstanceState(outState: Bundle) {
-        val web = Bundle()
-        if (binding.webView.saveState(web) != null) outState.putBundle("web",web)
+        val state = Bundle()
+        if (web.saveState(state) != null) outState.putBundle("web",state)
+        outState.putInt("activeTab",activeKey)
+        pages[activeKey]?.let { outState.putString("activeTarget",it.target) }
         pendingDownload?.let { d -> outState.putBundle("download",Bundle().apply { putString("url",d.url); putString("agent",d.agent); putString("disposition",d.disposition); putString("mime",d.mime) }) }
         failedUrl?.let { u -> outState.putString("errorUrl",u); outState.putString("errorTitle",binding.offlineTitle.text.toString()); outState.putString("errorDescription",binding.offlineDescription.text.toString()) }
         super.onSaveInstanceState(outState)
     }
-    override fun onResume() { super.onResume(); binding.webView.onResume(); tools.resumeCamera() }
-    override fun onPause() { tools.pauseCamera(); binding.webView.onPause(); CookieManager.getInstance().flush(); super.onPause() }
+    override fun onResume() { super.onResume(); web.onResume(); tools.resumeCamera() }
+    override fun onPause() { tools.pauseCamera(); web.onPause(); CookieManager.getInstance().flush(); super.onPause() }
     override fun onDestroy() {
         tools.cancelScan()
         toast?.cancel()
         fileCallback?.onReceiveValue(null)
         fileCallback = null
-        binding.webView.stopLoading()
-        binding.webView.setDownloadListener(null)
-        binding.webView.webChromeClient = null
-        binding.webView.webViewClient = WebViewClient()
-        binding.swipeRefresh.removeView(binding.webView)
-        binding.webView.destroy()
+        val retained = pages.values.map { it.view }
+        pages.clear()
+        retained.forEach { disposeWeb(it) }
         super.onDestroy()
     }
 }

@@ -29,6 +29,7 @@ import java.util.Locale
 class LibraryTools(
     private val activity: MainActivity,
     private val binding: ActivityMainBinding,
+    private val web: () -> android.webkit.WebView,
     private val trusted: (Uri) -> Boolean,
     private val open: (String) -> Unit,
     private val message: (String) -> Unit
@@ -81,9 +82,9 @@ class LibraryTools(
                 .setItems(arrayOf(if (hidden) "نمایش پنجره خدمات سایت" else "مخفی کردن پنجره خدمات سایت","کپی نشانی صفحه")) { _, which ->
                     if (which == 0) {
                         prefs.edit().putBoolean("hide_support",!hidden).apply()
-                        binding.webView.reload()
+                        web().reload()
                     } else {
-                        val url = binding.webView.url.orEmpty()
+                        val url = web().url.orEmpty()
                         val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                         clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Library URL",url))
                         message("نشانی صفحه کپی شد.")
@@ -105,10 +106,12 @@ class LibraryTools(
             BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX
         ))
         binding.barcodeCamera.setStatusText("")
+    }
+    fun setupWebBridge(view: android.webkit.WebView) {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
-            WebViewCompat.addWebMessageListener(binding.webView,"SLibraryScan",setOf("https://samanpl.ir","https://*.samanpl.ir")) { view, msg, origin, mainFrame, _ ->
+            WebViewCompat.addWebMessageListener(view,"SLibraryScan",setOf("https://samanpl.ir","https://*.samanpl.ir")) { view, msg, origin, mainFrame, _ ->
                 val current = view.url?.let { Uri.parse(it) }
-                if (mainFrame && current != null && trusted(current) && trusted(origin) &&
+                if (view === web() && mainFrame && current != null && trusted(current) && trusted(origin) &&
                     current.host.equals(origin.host,true) && msg.data == "scan") requestScan()
             }
         }
@@ -122,7 +125,7 @@ class LibraryTools(
                   document.addEventListener('DOMContentLoaded',function(){ob.disconnect();if(!document.querySelector('meta[name="viewport"]')&&document.head){var m=document.createElement('meta');m.name='viewport';m.content=value;document.head.appendChild(m);}fix();},{once:true});
                 })();
             """.trimIndent()
-            WebViewCompat.addDocumentStartJavaScript(binding.webView,script,setOf("https://samanpl.ir","https://*.samanpl.ir"))
+            WebViewCompat.addDocumentStartJavaScript(view,script,setOf("https://samanpl.ir","https://*.samanpl.ir"))
         }
     }
     fun edit(i: Int) {
@@ -147,7 +150,7 @@ class LibraryTools(
             .setNeutralButton("لینک صفحه فعلی",null).setNegativeButton("انصراف",null).create()
         dialog.setOnShowListener {
             dialog.window?.decorView?.layoutDirection = View.LAYOUT_DIRECTION_RTL
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener { input.setText(binding.webView.url.orEmpty()) }
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener { input.setText(web().url.orEmpty()) }
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val raw = input.text.toString().trim()
                 val normalized = normalize(raw)
@@ -164,7 +167,7 @@ class LibraryTools(
     }
     fun requestScan() {
         if (scanning || scanUrl != null || activity.isFinishing || activity.isDestroyed) return
-        val url = binding.webView.url ?: return
+        val url = web().url ?: return
         if (!trusted(Uri.parse(url))) return
         scanUrl = url
         if (!activity.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
@@ -174,20 +177,20 @@ class LibraryTools(
         else permission.launch(Manifest.permission.CAMERA)
     }
     private fun startCamera() {
-        if (scanUrl != binding.webView.url) { cancelScan(); return }
+        if (scanUrl != web().url) { cancelScan(); return }
         scanning = true
         binding.scanPanel.visibility = View.VISIBLE
         binding.scanPanel.bringToFront()
-        binding.webView.clearFocus()
-        (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(binding.webView.windowToken,0)
+        web().clearFocus()
+        (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(web().windowToken,0)
         binding.barcodeCamera.decodeSingle(object : BarcodeCallback {
             override fun barcodeResult(result: BarcodeResult) {
                 val code = result.text
                 val url = scanUrl
                 if (!scanning || code.isNullOrBlank()) return
                 cancelScan()
-                if (url == null || url != binding.webView.url || !trusted(Uri.parse(url))) return
-                binding.webView.evaluateJavascript("(function(){return !!(window.__samanBarcode && window.__samanBarcode.fill("+JSONObject.quote(code)+"));})()") {
+                if (url == null || url != web().url || !trusted(Uri.parse(url))) return
+                web().evaluateJavascript("(function(){return !!(window.__samanBarcode && window.__samanBarcode.fill("+JSONObject.quote(code)+"));})()") {
                     if (it == "true") {
                         message("بارکد خوانده شد: "+code)
                         runCatching {
@@ -225,10 +228,10 @@ class LibraryTools(
     private fun manual() {
         val url=scanUrl
         cancelScan()
-        if (url != null && url == binding.webView.url) {
-            binding.webView.requestFocus()
-            binding.webView.evaluateJavascript("window.__samanBarcode && window.__samanBarcode.manual()") {
-                (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(binding.webView,InputMethodManager.SHOW_IMPLICIT)
+        if (url != null && url == web().url) {
+            web().requestFocus()
+            web().evaluateJavascript("window.__samanBarcode && window.__samanBarcode.manual()") {
+                (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(web(),InputMethodManager.SHOW_IMPLICIT)
             }
         }
     }
