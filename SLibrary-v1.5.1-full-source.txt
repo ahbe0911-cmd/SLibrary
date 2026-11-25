@@ -2142,3 +2142,149 @@ BLOB: 3ba147e205a7122b0c04d53f89939621363a3305
 ==============================================================================
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@color/primary"/><foreground android:drawable="@drawable/ic_launcher_foreground"/></adaptive-icon>
 END FILE: app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+
+
+==============================================================================
+FILE: app/src/main/res/mipmap-anydpi/ic_launcher.xml
+BLOB: 28f2758380789b8214c0b3c2ade6f85d27fc74c5
+==============================================================================
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="48dp" android:height="48dp" android:viewportWidth="108" android:viewportHeight="108"><path android:fillColor="#065F46" android:pathData="M24,0 L84,0 Q108,0 108,24 L108,84 Q108,108 84,108 L24,108 Q0,108 0,84 L0,24 Q0,0 24,0 Z"/><path android:fillColor="#FFFFFF" android:pathData="M54,44 C46,37 36,36 28,39 L28,73 C38,70 47,71 54,78 C61,71 70,70 80,73 L80,39 C72,36 62,37 54,44 Z"/><path android:fillColor="#00000000" android:strokeColor="#065F46" android:strokeWidth="2.6" android:strokeLineCap="round" android:pathData="M54,44 L54,76 M35,48 Q43,47 48,51 M35,57 Q43,56 48,60 M60,51 Q67,47 73,48 M60,60 Q67,56 73,57"/><path android:fillColor="#D4AF37" android:pathData="M54,22 L57,30 L65,33 L57,36 L54,44 L51,36 L43,33 L51,30 Z"/></vector>
+END FILE: app/src/main/res/mipmap-anydpi/ic_launcher.xml
+
+
+==============================================================================
+FILE: app/src/main/res/raw/samanlibrary_keep.xml
+BLOB: ac39de5b193b3fcf84a54d86d4653db0ce9c5451
+==============================================================================
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@font/vazir"/>
+END FILE: app/src/main/res/raw/samanlibrary_keep.xml
+
+
+==============================================================================
+FILE: app/src/main/res/values/colors.xml
+BLOB: d1475155959aecdb9076ba6a4aeadb9233aba0ab
+==============================================================================
+<resources>
+    <color name="primary">#065F46</color>
+    <color name="primary_dark">#064E3B</color>
+    <color name="primary_light">#E4F0EA</color>
+    <color name="accent">#D4AF37</color>
+    <color name="app_background">#F8FAFC</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#64748B</color>
+    <color name="divider">#E2E8F0</color>
+    <color name="progress_track">#E4F0EA</color>
+    <color name="nav_ripple">#22065F46</color>
+</resources>
+END FILE: app/src/main/res/values/colors.xml
+
+
+==============================================================================
+FILE: app/src/main/res/values/strings.xml
+BLOB: 4639a7566dbd15b30a96d253ff3b7546d4fd3230
+==============================================================================
+<resources>
+    <string name="app_name">کتابخانه صفی‌آباد</string>
+    <string name="library_full_name">کتابخانه عمومی سید احمد خمینی صفی‌آباد</string>
+    <string name="app_version">نسخه ۱.۵.۱</string>
+    <string name="nav_home">خانه</string>
+    <string name="nav_status">وضعیت مدارک</string>
+    <string name="nav_loan">امانت</string>
+    <string name="nav_return">بازگشت</string>
+    <string name="membership_button">تمدید یا عضویت جدید</string>
+    <string name="offline_title">اتصال اینترنت برقرار نیست</string>
+    <string name="offline_description">لطفاً اتصال اینترنت خود را بررسی کنید و دوباره تلاش کنید.</string>
+    <string name="server_error_title">ارتباط با سرور برقرار نشد</string>
+    <string name="server_error_description">دریافت اطلاعات کتابخانه امکان‌پذیر نیست. دوباره تلاش کنید.</string>
+    <string name="ssl_error_title">اتصال امن برقرار نشد</string>
+    <string name="ssl_error_description">گواهی امنیتی سایت قابل تأیید نیست. اتصال متوقف شد.</string>
+    <string name="page_not_found">صفحه موردنظر پیدا نشد</string>
+    <string name="page_not_found_description">از منوی پایین بخش دیگری را انتخاب کنید یا دوباره تلاش کنید.</string>
+    <string name="access_denied">دسترسی به این صفحه امکان‌پذیر نیست</string>
+    <string name="retry">تلاش مجدد</string>
+    <string name="exit_message">برای خروج، دوباره دکمه بازگشت را بزنید.</string>
+    <string name="loading">در حال بارگذاری</string>
+    <string name="refresh">تازه‌سازی صفحه</string>
+</resources>
+END FILE: app/src/main/res/values/strings.xml
+
+
+==============================================================================
+FILE: app/src/main/res/values/themes.xml
+BLOB: b1b9452169b2879a1cb1741c14ac6e8c472e6ae1
+==============================================================================
+<resources>
+    <style name="Theme.SamanLibrary" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/primary</item><item name="colorPrimaryDark">@color/primary_dark</item><item name="colorAccent">@color/primary</item>
+        <item name="android:windowBackground">@color/app_background</item><item name="android:statusBarColor">@color/surface</item>
+        <item name="android:navigationBarColor">@color/surface</item><item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item><item name="android:forceDarkAllowed">false</item>
+    </style>
+    <style name="Theme.SamanLibrary.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/primary</item><item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.SamanLibrary</item>
+    </style>
+    <style name="Widget.SamanLibrary.NavItem" parent="">
+        <item name="android:layout_width">0dp</item><item name="android:layout_height">match_parent</item><item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item><item name="android:padding">4dp</item><item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/nav_item_color</item><item name="android:drawableTint">@color/nav_item_color</item>
+        <item name="android:drawablePadding">4dp</item><item name="android:background">@drawable/nav_item_background</item>
+        <item name="android:clickable">true</item><item name="android:focusable">true</item><item name="android:maxLines">1</item><item name="android:ellipsize">end</item>
+    </style>
+    <style name="TextAppearance.SamanLibrary.NavActive" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:fontFamily">@font/vazir</item>
+        <item name="fontFamily">@font/vazir</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    <style name="TextAppearance.SamanLibrary.NavInactive" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:fontFamily">@font/vazir</item>
+        <item name="fontFamily">@font/vazir</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+    <style name="Widget.SamanLibrary.NavIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/primary_light</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.Full</item>
+        <item name="android:width">58dp</item>
+        <item name="android:height">32dp</item>
+        <item name="marginHorizontal">4dp</item>
+    </style>
+</resources>
+END FILE: app/src/main/res/values/themes.xml
+
+
+==============================================================================
+FILE: build.gradle.kts
+BLOB: 5c653c821944b0f1160b28f8a28c09f2d5ef2a01
+==============================================================================
+plugins {
+    id("com.android.application") version "8.7.2" apply false
+    id("org.jetbrains.kotlin.android") version "2.1.21" apply false
+}
+END FILE: build.gradle.kts
+
+
+==============================================================================
+FILE: gradle.properties
+BLOB: ba355f5a5e9950a32a03cb9b40e4a4f4e295e6fd
+==============================================================================
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+org.gradle.parallel=true
+org.gradle.caching=true
+android.useAndroidX=true
+android.nonTransitiveRClass=true
+kotlin.code.style=official
+END FILE: gradle.properties
+
+
+==============================================================================
+FILE: settings.gradle.kts
+BLOB: 1dfebc925a1d1f6d95e19d629a31080a0aa2fd06
+==============================================================================
+pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+rootProject.name = "SamanLibrary"
+include(":app")
+
+END FILE: settings.gradle.kts
