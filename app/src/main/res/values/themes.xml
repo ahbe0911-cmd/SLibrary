@@ -9,7 +9,7 @@
         <item name="windowSplashScreenBackground">@color/primary</item><item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
         <item name="postSplashScreenTheme">@style/Theme.SamanLibrary</item>
     </style>
-    <style name="Widget.SamanLibrary.NavItem">
+    <style name="Widget.SamanLibrary.NavItem" parent="">
         <item name="android:layout_width">0dp</item><item name="android:layout_height">match_parent</item><item name="android:layout_weight">1</item>
         <item name="android:gravity">center</item><item name="android:padding">4dp</item><item name="android:textSize">12sp</item>
         <item name="android:textColor">@color/nav_item_color</item><item name="android:drawableTint">@color/nav_item_color</item>
