@@ -1,15 +1,12 @@
 <resources>
     <string name="app_name">کتابخانه صفی‌آباد</string>
     <string name="library_full_name">کتابخانه عمومی سید احمد خمینی صفی‌آباد</string>
-    <string name="app_version">نسخه ۱.۲.۰</string>
+    <string name="app_version">نسخه ۱.۳.۰</string>
     <string name="nav_home">خانه</string>
-    <string name="nav_search">جستجو</string>
-    <string name="nav_services">خدمات</string>
-    <string name="nav_contact">ارتباط</string>
-    <string name="path_home" translatable="false">/</string>
-    <string name="path_search" translatable="false">/lsearch/lsearch/Index</string>
-    <string name="path_services" translatable="false">/common/Banner/Index</string>
-    <string name="path_contact" translatable="false">/contactus/contactus/Create</string>
+    <string name="nav_status">وضعیت مدارک</string>
+    <string name="nav_loan">امانت</string>
+    <string name="nav_return">بازگشت</string>
+    <string name="membership_button">تمدید یا عضویت جدید</string>
     <string name="offline_title">اتصال اینترنت برقرار نیست</string>
     <string name="offline_description">لطفاً اتصال اینترنت خود را بررسی کنید و دوباره تلاش کنید.</string>
     <string name="server_error_title">ارتباط با سرور برقرار نشد</string>

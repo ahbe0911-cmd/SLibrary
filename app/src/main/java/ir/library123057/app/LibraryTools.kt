@@ -40,8 +40,8 @@ class LibraryTools(
     private var cameraRunning = false
     private var torch = false
     private val timeout = Runnable { if (scanning) { cancelScan(); message("بارکد پیدا نشد. دوباره تلاش کنید.") } }
-    private val slots by lazy { listOf(binding.bookmarkStatus,binding.bookmarkLoan,binding.bookmarkReturn) }
-    private val labels = listOf("وضعیت مدارک","امانت","بازگشت")
+    private val slotIds = listOf(R.id.navStatus, R.id.navLoan, R.id.navReturn)
+    private val labels = listOf("وضعیت مدارک","امانت","بازگشت","تمدید یا عضویت جدید")
     private val permission = activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted && scanUrl != null) startCamera()
         else { cancelScan(); message("مجوز دوربین داده نشد؛ ورود دستی در دسترس است.") }
@@ -52,26 +52,29 @@ class LibraryTools(
         return uri.scheme.equals("https",true) && uri.userInfo == null && uri.port in listOf(-1,443) &&
             (host == "samanpl.ir" || host.endsWith(".samanpl.ir"))
     }
-    fun isSavedOrigin(uri: Uri): Boolean = libraryAddress(uri) && (0..2).any { i ->
-        prefs.getString("bookmark_$i",null)?.let { Uri.parse(it).host.equals(uri.host,true) } == true
+    fun target(i: Int): String? = (prefs.getString("bookmark_$i",null)?.let { normalize(it) }
+        ?: normalize(AppConfig.staffDefaults[i]))
+    fun isSavedOrigin(uri: Uri): Boolean = libraryAddress(uri) && (0..3).any { i ->
+        target(i)?.let { Uri.parse(it).host.equals(uri.host,true) } == true
     }
     private fun normalize(raw: String): String? {
         val value = raw.trim()
         if (value.isEmpty()) return null
-        val url = if (value.startsWith("/") && !value.startsWith("//")) BuildConfig.WEBSITE_URL.trimEnd('/')+value
+        val url = if (value.startsWith("/") && !value.startsWith("//")) AppConfig.HOME_URL.trimEnd('/')+value
             else if (!value.contains("://")) "https://"+value else value
         val uri = Uri.parse(url)
         return url.takeIf { libraryAddress(uri) }
     }
     fun setup() {
-        slots.forEachIndexed { i, view ->
-            refreshSlot(i,view)
-            view.setOnClickListener {
-                val url = prefs.getString("bookmark_$i",null)
-                if (url.isNullOrBlank()) edit(i) else open(url)
-            }
-            view.setOnLongClickListener { edit(i); true }
+        // Existing bookmark preferences keep the same keys when moved to bottom navigation.
+        slotIds.forEachIndexed { i, id ->
+            binding.bottomNavigation.findViewById<View>(id)?.setOnLongClickListener { edit(i); true }
         }
+        binding.membershipButton.setOnClickListener {
+            val url = target(3)
+            if (url == null) edit(3) else open(url)
+        }
+        binding.membershipButton.setOnLongClickListener { edit(3); true }
         binding.headerRefresh.setOnLongClickListener {
             val hidden = prefs.getBoolean("hide_support",true)
             AlertDialog.Builder(activity).setTitle("تنظیمات نمایش")
@@ -122,19 +125,14 @@ class LibraryTools(
             WebViewCompat.addDocumentStartJavaScript(binding.webView,script,setOf("https://samanpl.ir","https://*.samanpl.ir"))
         }
     }
-    private fun refreshSlot(i: Int, v: TextView) {
-        val configured = !prefs.getString("bookmark_$i",null).isNullOrBlank()
-        v.alpha = if (configured) 1f else .75f
-        v.contentDescription = labels[i]+ if (configured) "؛ برای ویرایش نگه دارید" else "؛ برای تنظیم لینک لمس کنید"
-    }
-    private fun edit(i: Int) {
+    fun edit(i: Int) {
         val input = EditText(activity).apply {
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
             setSingleLine(true)
             layoutDirection = View.LAYOUT_DIRECTION_LTR
             textDirection = View.TEXT_DIRECTION_LTR
             hint = "https://123057.samanpl.ir/..."
-            setText(prefs.getString("bookmark_$i",""))
+            setText(target(i).orEmpty())
             setSelectAllOnFocus(true)
         }
         val wrap = android.widget.LinearLayout(activity).apply {
@@ -158,7 +156,7 @@ class LibraryTools(
                 } else {
                     if (normalized == null) prefs.edit().remove("bookmark_$i").apply()
                     else prefs.edit().putString("bookmark_$i",normalized).apply()
-                    refreshSlot(i,slots[i]); dialog.dismiss(); message("میان‌بر ذخیره شد.")
+                    dialog.dismiss(); message("میان‌بر ذخیره شد.")
                 }
             }
         }

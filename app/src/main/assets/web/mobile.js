@@ -89,10 +89,10 @@ function(css, expectedHost, hideSupport) {
    if(Math.max(table.scrollWidth,table.getBoundingClientRect().width)>Math.min(p.clientWidth||width,width)+4)table.classList.add("saman-app-wide-table");
   });
  }
- let timer;function schedule(){clearTimeout(timer);timer=setTimeout(optimize,100);}
+ let timer=null;function schedule(){if(timer!==null)return;timer=setTimeout(()=>{timer=null;optimize();},180);}
  const observer=new MutationObserver(schedule);
- if(document.body)observer.observe(document.body,{childList:true,subtree:true,characterData:true});
- else document.addEventListener("DOMContentLoaded",schedule,{once:true});
+ function observeBody(){if(document.body)observer.observe(document.body,{childList:true,subtree:true,characterData:true});schedule();}
+ if(document.body)observeBody();else document.addEventListener("DOMContentLoaded",observeBody,{once:true});
  addEventListener("resize",schedule);document.addEventListener("load",schedule,true);
  window.__samanMobile={refresh:schedule,dispose(){observer.disconnect();clearTimeout(timer);removeEventListener("resize",schedule);document.removeEventListener("load",schedule,true);document.removeEventListener("click",onClick,true);document.removeEventListener("focusout",onFocusOut,true);}};
  optimize();schedule();return "optimization-applied";

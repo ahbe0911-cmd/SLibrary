@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var optimizer: WebViewOptimizer
     private lateinit var tools: LibraryTools
-    private val homeHost = Uri.parse(BuildConfig.WEBSITE_URL).host.orEmpty()
+    private val homeHost = Uri.parse(AppConfig.HOME_URL).host.orEmpty()
     private var lastBack = 0L
     private var toast: Toast? = null
     private var activeUrl: String? = null
@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
     private var uploadOrigin: String? = null
     private var pendingDownload: DownloadInfo? = null
     private data class DownloadInfo(val url: String, val agent: String, val disposition: String, val mime: String)
-    private data class Nav(val view: TextView, val path: String)
+    private data class Nav(val id: Int, val url: String?)
 
     private val picker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val callback = fileCallback
@@ -85,8 +85,8 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT < 26) window.navigationBarColor = ContextCompat.getColor(this, R.color.primary_dark)
         applyFont(binding.root, ResourcesCompat.getFont(this, R.font.vazir) ?: Typeface.DEFAULT)
         setupWebView()
-        setupNavigation()
         tools.setup()
+        setupNavigation()
         binding.headerRefresh.setOnClickListener { retry() }
         binding.retryButton.setOnClickListener { retry() }
         binding.swipeRefresh.setColorSchemeResources(R.color.primary, R.color.accent)
@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity() {
             pendingDownload = DownloadInfo(it.getString("url").orEmpty(), it.getString("agent").orEmpty(), it.getString("disposition").orEmpty(), it.getString("mime").orEmpty())
         }
         val restored = savedInstanceState?.getBundle("web")?.let { binding.webView.restoreState(it) }
-        if (restored == null) loadPage(BuildConfig.WEBSITE_URL)
+        if (restored == null) loadPage(AppConfig.HOME_URL)
         else {
             activeUrl = binding.webView.url
             updateNavigation(activeUrl)
@@ -136,6 +136,7 @@ class MainActivity : AppCompatActivity() {
         w.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
+            databaseEnabled = true
             cacheMode = WebSettings.LOAD_DEFAULT
             useWideViewPort = true
             loadWithOverviewMode = true
@@ -155,6 +156,10 @@ class MainActivity : AppCompatActivity() {
             displayZoomControls = false
             setGeolocationEnabled(false)
             if (Build.VERSION.SDK_INT >= 26) safeBrowsingEnabled = true
+        }
+        // Keep the normal hardware-accelerated WebView compositor; do not force a bitmap layer.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            w.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true)
         }
         w.isHorizontalScrollBarEnabled = false
         CookieManager.getInstance().apply {
@@ -180,7 +185,7 @@ class MainActivity : AppCompatActivity() {
                 if (url != null && !trusted(Uri.parse(url))) {
                     view.stopLoading()
                     if (secure(Uri.parse(url))) launch(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                    showError(getString(R.string.access_denied), "برای امنیت، صفحات خارجی در مرورگر باز می‌شوند.", BuildConfig.WEBSITE_URL)
+                    showError(getString(R.string.access_denied), "برای امنیت، صفحات خارجی در مرورگر باز می‌شوند.", AppConfig.HOME_URL)
                 }
             }
             override fun onPageCommitVisible(view: WebView, url: String?) {
@@ -264,30 +269,43 @@ class MainActivity : AppCompatActivity() {
     private fun secure(u: Uri): Boolean = u.scheme.equals("https",true) && !u.host.isNullOrBlank() && u.userInfo == null
     private fun trusted(u: Uri): Boolean = secure(u) && u.port in listOf(-1,443) && (u.host.equals(homeHost,true) || (this::tools.isInitialized && tools.isSavedOrigin(u)))
     private fun sameUrl(a: String?, b: String?): Boolean = a != null && b != null && Uri.parse(a).buildUpon().fragment(null).build() == Uri.parse(b).buildUpon().fragment(null).build()
-    private fun navItems() = listOf(Nav(binding.navHome,getString(R.string.path_home)),Nav(binding.navSearch,getString(R.string.path_search)),Nav(binding.navServices,getString(R.string.path_services)),Nav(binding.navContact,getString(R.string.path_contact)))
-    private fun navUrl(path: String) = Uri.parse(BuildConfig.WEBSITE_URL).buildUpon().encodedPath(path).clearQuery().fragment(null).build().toString()
-    private fun path(s: String?) = s.orEmpty().trimEnd('/').lowercase(Locale.ROOT).ifBlank { "/" }
+    private fun navItems() = listOf(
+        Nav(R.id.navHome, AppConfig.HOME_URL),
+        Nav(R.id.navStatus, tools.target(0)),
+        Nav(R.id.navLoan, tools.target(1)),
+        Nav(R.id.navReturn, tools.target(2))
+    )
+
+    private fun openTab(id: Int): Boolean {
+        val item = navItems().firstOrNull { it.id == id } ?: return false
+        val target = item.url
+        if (target.isNullOrBlank()) {
+            val index = when (id) { R.id.navStatus -> 0; R.id.navLoan -> 1; R.id.navReturn -> 2; else -> return false }
+            tools.edit(index)
+            return false
+        }
+        if (!trusted(Uri.parse(target))) { message("آدرس صفحه مجاز نیست."); return false }
+        loadPage(target)
+        return true
+    }
+
     private fun setupNavigation() {
-        navItems().forEach { n ->
-            n.view.setOnClickListener {
-                val target = navUrl(n.path)
-                if (failedUrl == null && sameUrl(binding.webView.url,target)) binding.webView.scrollTo(0,0)
-                else loadPage(target)
-            }
-        }
-        updateNavigation(BuildConfig.WEBSITE_URL)
+        binding.bottomNavigation.setOnItemSelectedListener { openTab(it.itemId) }
+        binding.bottomNavigation.setOnItemReselectedListener { openTab(it.itemId) }
+        updateNavigation(AppConfig.HOME_URL)
     }
+
     private fun updateNavigation(url: String?) {
-        val uri = url?.let { Uri.parse(it) }
-        val current = path(uri?.path)
-        navItems().forEach { n ->
-            val p = path(n.path)
-            n.view.isSelected = uri != null && trusted(uri) && (current == p || p != "/" && current.startsWith("$p/"))
-            n.view.setTypeface(n.view.typeface, if (n.view.isSelected) Typeface.BOLD else Typeface.NORMAL)
-        }
+        val match = navItems().firstOrNull { sameUrl(it.url, url) } ?: return
+        val item = binding.bottomNavigation.menu.findItem(match.id)
+        if (!item.isChecked) item.isChecked = true
     }
+
     private fun loadPage(url: String) {
         if (!trusted(Uri.parse(url))) { message("آدرس صفحه مجاز نیست."); return }
+        // Ignore repeated taps, including a navigation already in progress.
+        if (failedUrl == null && (sameUrl(binding.webView.url, url) ||
+                (binding.pageProgress.visibility == View.VISIBLE && sameUrl(activeUrl, url)))) return
         binding.webView.stopLoading()
         activeUrl = url
         beginLoading()
@@ -297,7 +315,7 @@ class MainActivity : AppCompatActivity() {
     private fun retry() {
         failedUrl?.let { loadPage(it); return }
         val u = binding.webView.url
-        if (u == null || !trusted(Uri.parse(u))) loadPage(BuildConfig.WEBSITE_URL)
+        if (u == null || !trusted(Uri.parse(u))) loadPage(AppConfig.HOME_URL)
         else { beginLoading(); binding.webView.reload() }
     }
     private fun beginLoading() {
@@ -313,7 +331,7 @@ class MainActivity : AppCompatActivity() {
         binding.pageProgress.visibility = View.INVISIBLE
     }
     private fun showError(title: String, description: String, url: String?) {
-        failedUrl = url?.takeIf { trusted(Uri.parse(it)) } ?: activeUrl?.takeIf { trusted(Uri.parse(it)) } ?: BuildConfig.WEBSITE_URL
+        failedUrl = url?.takeIf { trusted(Uri.parse(it)) } ?: activeUrl?.takeIf { trusted(Uri.parse(it)) } ?: AppConfig.HOME_URL
         finishLoading()
         binding.offlineTitle.text = title
         binding.offlineDescription.text = description

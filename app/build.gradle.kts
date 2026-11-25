@@ -16,8 +16,8 @@ android {
         applicationId = "ir.library123057.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.2.0"
+        versionCode = 6
+        versionName = "1.3.0"
         buildConfigField("String", "WEBSITE_URL", "\"https://123057.samanpl.ir/\"")
     }
     signingConfigs {
@@ -46,6 +46,7 @@ kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.activity:activity-ktx:1.9.0")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation("androidx.core:core-splashscreen:1.0.1")

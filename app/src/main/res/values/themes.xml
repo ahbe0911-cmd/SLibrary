@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.SamanLibrary" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="Theme.SamanLibrary" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/primary</item><item name="colorPrimaryDark">@color/primary_dark</item><item name="colorAccent">@color/primary</item>
         <item name="android:windowBackground">@color/app_background</item><item name="android:statusBarColor">@color/surface</item>
         <item name="android:navigationBarColor">@color/surface</item><item name="android:windowLightStatusBar">true</item>
@@ -15,5 +15,23 @@
         <item name="android:textColor">@color/nav_item_color</item><item name="android:drawableTint">@color/nav_item_color</item>
         <item name="android:drawablePadding">4dp</item><item name="android:background">@drawable/nav_item_background</item>
         <item name="android:clickable">true</item><item name="android:focusable">true</item><item name="android:maxLines">1</item><item name="android:ellipsize">end</item>
+    </style>
+    <style name="TextAppearance.SamanLibrary.NavActive" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:fontFamily">@font/vazir</item>
+        <item name="fontFamily">@font/vazir</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+    <style name="TextAppearance.SamanLibrary.NavInactive" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:fontFamily">@font/vazir</item>
+        <item name="fontFamily">@font/vazir</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+    <style name="Widget.SamanLibrary.NavIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/primary_light</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.Full</item>
+        <item name="android:width">58dp</item>
+        <item name="android:height">32dp</item>
+        <item name="marginHorizontal">4dp</item>
     </style>
 </resources>

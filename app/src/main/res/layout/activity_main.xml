@@ -1,11 +1,20 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/mainRoot" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:layoutDirection="rtl" android:background="@color/app_background">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="56dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="6dp" android:paddingEnd="2dp" android:background="@color/surface">
-        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_book" android:importantForAccessibility="no"/>
-        <TextView android:id="@+id/headerTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="4dp" android:text="@string/app_name" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/primary" android:maxLines="1" android:ellipsize="end"/>
-        <TextView android:id="@+id/bookmarkStatus" android:layout_width="56dp" android:layout_height="44dp" android:layout_marginStart="2dp" android:gravity="center" android:padding="2dp" android:text="وضعیت مدارک" android:textSize="10sp" android:maxLines="2" android:textColor="@color/primary" android:background="@drawable/bookmark_chip" android:clickable="true" android:focusable="true"/>
-        <TextView android:id="@+id/bookmarkLoan" android:layout_width="46dp" android:layout_height="44dp" android:layout_marginStart="2dp" android:gravity="center" android:text="امانت" android:textSize="11sp" android:textColor="@color/primary" android:background="@drawable/bookmark_chip" android:clickable="true" android:focusable="true"/>
-        <TextView android:id="@+id/bookmarkReturn" android:layout_width="46dp" android:layout_height="44dp" android:layout_marginStart="2dp" android:gravity="center" android:text="بازگشت" android:textSize="11sp" android:textColor="@color/primary" android:background="@drawable/bookmark_chip" android:clickable="true" android:focusable="true"/>
-        <ImageButton android:id="@+id/headerRefresh" android:layout_width="40dp" android:layout_height="48dp" android:padding="9dp" android:background="?attr/selectableItemBackgroundBorderless" android:src="@drawable/ic_refresh" android:scaleType="centerInside" android:contentDescription="@string/refresh"/>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/mainRoot" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:layoutDirection="rtl" android:background="@color/app_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="64dp"
+        android:orientation="horizontal" android:gravity="center_vertical" android:layoutDirection="rtl"
+        android:paddingStart="8dp" android:paddingEnd="2dp" android:background="@color/surface"
+        android:clipChildren="false" android:clipToPadding="false">
+        <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_book" android:importantForAccessibility="no"/>
+        <TextView android:id="@+id/headerTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:layout_marginStart="5dp" android:layout_marginEnd="5dp" android:text="@string/app_name"
+            android:textSize="15sp" android:textStyle="bold" android:textColor="@color/primary" android:maxLines="2" android:ellipsize="end"/>
+        <TextView android:id="@+id/membershipButton" android:layout_width="wrap_content" android:layout_height="44dp"
+            android:minWidth="120dp" android:maxWidth="164dp" android:paddingStart="9dp" android:paddingEnd="9dp"
+            android:gravity="center" android:text="@string/membership_button" android:textColor="@android:color/white"
+            android:textSize="12sp" android:textStyle="bold" android:maxLines="2" android:background="@drawable/bg_membership_pill"
+            android:elevation="3dp" android:stateListAnimator="@animator/membership_press" android:clickable="true" android:focusable="true"/>
+        <ImageButton android:id="@+id/headerRefresh" android:layout_width="48dp" android:layout_height="48dp"
+            android:padding="12dp" android:background="?attr/selectableItemBackgroundBorderless" android:src="@drawable/ic_refresh"
+            android:scaleType="centerInside" android:contentDescription="@string/refresh"/>
     </LinearLayout>
     <ProgressBar android:id="@+id/pageProgress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="3dp" android:max="100" android:progressTint="@color/accent" android:progressBackgroundTint="@color/progress_track" android:visibility="invisible" android:contentDescription="@string/loading"/>
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
@@ -31,10 +40,14 @@
         </LinearLayout>
     </FrameLayout>
     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider"/>
-    <LinearLayout android:id="@+id/bottomNavigation" android:layout_width="match_parent" android:layout_height="72dp" android:orientation="horizontal" android:layoutDirection="rtl" android:gravity="center_vertical" android:paddingStart="6dp" android:paddingEnd="6dp" android:paddingTop="5dp" android:paddingBottom="5dp" android:background="@color/surface">
-        <TextView android:id="@+id/navHome" style="@style/Widget.SamanLibrary.NavItem" android:text="@string/nav_home" android:drawableTop="@drawable/ic_home"/>
-        <TextView android:id="@+id/navSearch" style="@style/Widget.SamanLibrary.NavItem" android:text="@string/nav_search" android:drawableTop="@drawable/ic_search"/>
-        <TextView android:id="@+id/navServices" style="@style/Widget.SamanLibrary.NavItem" android:text="@string/nav_services" android:drawableTop="@drawable/ic_book"/>
-        <TextView android:id="@+id/navContact" style="@style/Widget.SamanLibrary.NavItem" android:text="@string/nav_contact" android:drawableTop="@drawable/ic_contact"/>
-    </LinearLayout>
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation" android:layout_width="match_parent" android:layout_height="68dp"
+        android:layoutDirection="rtl" android:background="@color/surface" android:elevation="2dp"
+        app:menu="@menu/bottom_navigation" app:labelVisibilityMode="labeled"
+        app:itemHorizontalTranslationEnabled="false" app:itemIconSize="24dp"
+        app:itemIconTint="@color/bottom_nav_color" app:itemTextColor="@color/bottom_nav_color"
+        app:itemTextAppearanceActive="@style/TextAppearance.SamanLibrary.NavActive"
+        app:itemTextAppearanceInactive="@style/TextAppearance.SamanLibrary.NavInactive"
+        app:itemActiveIndicatorStyle="@style/Widget.SamanLibrary.NavIndicator"
+        app:itemRippleColor="@color/nav_ripple"/>
 </LinearLayout>
